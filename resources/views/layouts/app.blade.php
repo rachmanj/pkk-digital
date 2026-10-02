@@ -8,6 +8,10 @@
     @endisset
 @stop
 
+@section('footer')
+    <strong>TP PKK Kelurahan Gunung Sari Ilir</strong>
+@stop
+
 @section('content')
     @yield('page_content')
 @stop

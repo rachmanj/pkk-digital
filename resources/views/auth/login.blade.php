@@ -6,7 +6,9 @@
     $loginUrl = $layoutHelper->makeUrl(route('login'));
 @endphp
 
-@section('auth_header', 'Buku PKK Digital')
+@section('title', 'Masuk — Buku PKK Digital')
+
+@section('auth_header', 'Masuk')
 
 @section('auth_body')
     <form action="{{ $loginUrl }}" method="post">

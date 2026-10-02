@@ -25,7 +25,3 @@ Route::post('/logout', [AuthController::class, 'logout'])
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware('auth')
     ->name('dashboard');
-
-Route::get('/welcome', function () {
-    return view('welcome');
-});

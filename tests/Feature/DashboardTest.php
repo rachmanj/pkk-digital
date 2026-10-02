@@ -24,6 +24,8 @@ class DashboardTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Gunung Sari Ilir', false);
+        $response->assertSee('Buku PKK Digital', false);
+        $response->assertDontSee('AdminLTE', false);
         foreach (['I', 'II', 'III', 'IV'] as $kode) {
             $response->assertSee($kode, false);
         }
