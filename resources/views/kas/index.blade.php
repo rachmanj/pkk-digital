@@ -148,6 +148,7 @@
     </div>
 
     @can(\App\Support\PkkPermission::KELOLA_KAS)
+        @if ($filters['buku'] === 'kelurahan')
         <div class="card mb-3">
             <div class="card-header py-2">Tutup buku tahun {{ $filters['tahun'] }}</div>
             <div class="card-body">
@@ -181,9 +182,10 @@
                 </form>
             </div>
         </div>
+        @endif
     @endcan
 
-    @if ($tutupBukuRiwayat->isNotEmpty())
+    @if ($filters['buku'] === 'kelurahan' && $tutupBukuRiwayat->isNotEmpty())
         <div class="card mb-3">
             <div class="card-header py-2">Riwayat tutup buku</div>
             <div class="card-body p-0 table-responsive">

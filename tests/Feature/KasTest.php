@@ -8,6 +8,7 @@ use App\Models\KasTransaksi;
 use App\Models\KasTutupBuku;
 use App\Models\Kelurahan;
 use App\Models\Pokja;
+use App\Services\BukuCetakService;
 use App\Services\KasService;
 use Database\Seeders\MasterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -574,5 +575,192 @@ class KasTest extends TestCase
 
         $this->actingAs($sekretaris)->get(route('kas.show', $transaksi))->assertOk();
         $this->actingAs($sekretaris)->get(route('kas.edit', $transaksi))->assertOk();
+    }
+
+    public function test_post_tutup_buku_pokja_ditolak_dan_tidak_mencatat(): void
+    {
+        ['pokjaI' => $pokjaI] = $this->seedMaster();
+        $bendahara = $this->userForRole('bendahara', ['email' => 'bend-tutup-pokja@pkk.test']);
+
+        $this->assertSame(0, KasTutupBuku::query()->count());
+
+        $this->actingAs($bendahara)->post(route('kas.tutup-buku.store'), [
+            'buku' => 'pokja-'.$pokjaI->id,
+            'tahun' => 2026,
+            'tanggal_tutup' => '2026-12-31',
+        ])
+            ->assertRedirect(route('kas.index', ['buku' => 'pokja-'.$pokjaI->id, 'tahun' => 2026]))
+            ->assertSessionHas('error', 'Tutup buku hanya berlaku untuk Buku Tabungan/Kas Umum tingkat kelurahan.');
+
+        $this->assertSame(0, KasTutupBuku::query()->count());
+    }
+
+    public function test_halaman_kas_pokja_tanpa_kontrol_tutup_buku(): void
+    {
+        ['pokjaI' => $pokjaI] = $this->seedMaster();
+        $bendahara = $this->userForRole('bendahara', ['email' => 'bend-ui-pokja@pkk.test']);
+
+        $response = $this->actingAs($bendahara)->get(route('kas.index', [
+            'buku' => 'pokja-'.$pokjaI->id,
+            'tahun' => 2026,
+        ]));
+
+        $response->assertOk();
+        $response->assertDontSee('Tutup buku tahun', false);
+        $response->assertDontSee('Riwayat tutup buku', false);
+        $response->assertDontSee(route('kas.tutup-buku.store'), false);
+        $response->assertDontSee('Cetak bukti', false);
+    }
+
+    public function test_halaman_kas_kelurahan_memuat_tombol_tutup_buku(): void
+    {
+        $this->seedMaster();
+        $bendahara = $this->userForRole('bendahara', ['email' => 'bend-ui-kel@pkk.test']);
+
+        $response = $this->actingAs($bendahara)->get(route('kas.index', [
+            'buku' => 'kelurahan',
+            'tahun' => 2026,
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Tutup buku tahun', false);
+        $response->assertSee(route('kas.tutup-buku.store'), false);
+        $response->assertSee('>Tutup buku</button>', false);
+    }
+
+    public function test_tutup_buku_kelurahan_menyimpan_snapshot_saldo_dan_penandatangan(): void
+    {
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+        $service = app(KasService::class);
+        $bendahara = $this->userForRole('bendahara', ['email' => 'bend-snap@pkk.test']);
+
+        KasSaldoAwal::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'pos' => KasSaldoAwal::POS_TUNAI,
+            'jumlah' => 10000,
+        ]);
+        KasSaldoAwal::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'pos' => KasSaldoAwal::POS_BANK,
+            'jumlah' => 20000,
+        ]);
+        KasTransaksi::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'jenis' => KasTransaksi::JENIS_MASUK,
+            'pos' => KasTransaksi::POS_BANK,
+            'tanggal' => '2026-05-01',
+            'uraian' => 'Setoran',
+            'jumlah' => 5000,
+        ]);
+
+        $expectedBank = $service->saldoAkhir($kelurahan->id, null, 2026, KasTransaksi::POS_BANK);
+        $expectedTunai = $service->saldoAkhir($kelurahan->id, null, 2026, KasTransaksi::POS_TUNAI);
+
+        $this->actingAs($bendahara)->post(route('kas.tutup-buku.store'), [
+            'buku' => 'kelurahan',
+            'tahun' => 2026,
+            'tanggal_tutup' => '2026-12-31',
+            'nama_ketua' => 'Ketua GSI',
+            'nama_bendahara' => 'Bendahara GSI',
+            'catatan' => 'Selesai',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->assertDatabaseHas('kas_tutup_buku', [
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'nama_ketua' => 'Ketua GSI',
+            'nama_bendahara' => 'Bendahara GSI',
+            'catatan' => 'Selesai',
+        ]);
+
+        $tutup = KasTutupBuku::query()->firstOrFail();
+        $this->assertEqualsWithDelta($expectedBank, (float) $tutup->sisa_bank, 0.001);
+        $this->assertEqualsWithDelta($expectedTunai, (float) $tutup->sisa_tunai, 0.001);
+        $this->assertEqualsWithDelta($expectedBank + $expectedTunai, (float) $tutup->total, 0.001);
+        $this->assertSame('2026-12-31', $tutup->tanggal_tutup?->toDateString());
+    }
+
+    public function test_cetak_kas_tabungan_pengeluaran_minus_dan_jumlah_hanya_penerimaan(): void
+    {
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+        $sekretaris = $this->userForRole('sekretaris', ['email' => 'sek-minus-html@pkk.test']);
+
+        KasTransaksi::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'jenis' => KasTransaksi::JENIS_MASUK,
+            'pos' => KasTransaksi::POS_TUNAI,
+            'tanggal' => '2026-02-01',
+            'sumber_dana' => 'Iuran',
+            'uraian' => 'Pemasukan tes',
+            'jumlah' => 100000,
+        ]);
+        KasTransaksi::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'jenis' => KasTransaksi::JENIS_KELUAR,
+            'pos' => KasTransaksi::POS_TUNAI,
+            'tanggal' => '2026-02-02',
+            'uraian' => 'Pengeluaran tes',
+            'jumlah' => 30000,
+        ]);
+
+        $query = http_build_query(['tahun' => 2026, 'buku' => 'kelurahan']);
+        $response = $this->actingAs($sekretaris)->get(route('cetak.show', ['buku' => 'kas_tabungan']).'?'.$query);
+
+        $response->assertOk();
+        $response->assertSee('100.000', false);
+        $response->assertSee('-30.000', false);
+        $response->assertSee('>JUMLAH</td>', false);
+        $response->assertSee('>100.000</td>', false);
+        $response->assertDontSee('>70.000</td>', false);
+    }
+
+    public function test_export_excel_kas_tabungan_pengeluaran_minus_dan_jumlah_hanya_penerimaan(): void
+    {
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+
+        KasTransaksi::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'jenis' => KasTransaksi::JENIS_MASUK,
+            'pos' => KasTransaksi::POS_TUNAI,
+            'tanggal' => '2026-03-01',
+            'sumber_dana' => 'Iuran',
+            'uraian' => 'Masuk excel',
+            'jumlah' => 80000,
+        ]);
+        KasTransaksi::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'jenis' => KasTransaksi::JENIS_KELUAR,
+            'pos' => KasTransaksi::POS_TUNAI,
+            'tanggal' => '2026-03-02',
+            'uraian' => 'Keluar excel',
+            'jumlah' => 15000,
+        ]);
+
+        $dataset = app(BukuCetakService::class)->data('kas_tabungan', [
+            'tahun' => 2026,
+            'buku' => 'kelurahan',
+        ]);
+        $rows = (new KasTabunganExport($dataset))->array();
+
+        $this->assertSame('80.000', $rows[0][5]);
+        $this->assertSame('-15.000', $rows[1][5]);
+        $this->assertSame('JUMLAH', $rows[2][3]);
+        $this->assertSame('80.000', $rows[2][5]);
+        $this->assertSame(80000.0, (float) $dataset['total_penerimaan']);
     }
 }

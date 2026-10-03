@@ -89,15 +89,11 @@ class KasController extends Controller
             ? $this->kasService->saldoAwal($kelurahan->id, $pokjaIdFilter, $tahun, KasTransaksi::POS_BANK)
             : 0;
 
-        $tutupBukuRiwayat = $kelurahan
+        $tutupBukuRiwayat = ($kelurahan && $pokjaIdFilter === null)
             ? KasTutupBuku::query()
                 ->where('kelurahan_id', $kelurahan->id)
+                ->whereNull('pokja_id')
                 ->tahun($tahun)
-                ->when(
-                    $pokjaIdFilter,
-                    fn ($q) => $q->where('pokja_id', $pokjaIdFilter),
-                    fn ($q) => $q->whereNull('pokja_id')
-                )
                 ->orderByDesc('tanggal_tutup')
                 ->orderByDesc('id')
                 ->get()
@@ -152,6 +148,14 @@ class KasController extends Controller
         $this->authorizePokjaRecord($pokjaId);
 
         $tahun = (int) $validated['tahun'];
+
+        if ($pokjaId !== null) {
+            return redirect()->route('kas.index', [
+                'buku' => $validated['buku'],
+                'tahun' => $tahun,
+            ])->with('error', 'Tutup buku hanya berlaku untuk Buku Tabungan/Kas Umum tingkat kelurahan.');
+        }
+
         $sisaBank = $this->kasService->saldoAkhir($kelurahan->id, $pokjaId, $tahun, KasTransaksi::POS_BANK);
         $sisaTunai = $this->kasService->saldoAkhir($kelurahan->id, $pokjaId, $tahun, KasTransaksi::POS_TUNAI);
 
