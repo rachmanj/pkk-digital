@@ -24,6 +24,16 @@ class BukuCetakTampilan
     public function untukKode(string $kodeBuku): array
     {
         $config = config('buku.'.$kodeBuku);
+
+        if ($config !== null && ($config['tipe'] ?? '') === 'program_kerja_matriks') {
+            return [
+                'orientasi' => 'landscape',
+                'kelas_orientasi' => 'cetak-landscape',
+                'lebar_kolom' => [],
+                'dompdf_kertas' => 'a4',
+            ];
+        }
+
         $jumlahKolom = is_array($config['kolom'] ?? null) ? count($config['kolom']) : 0;
         $landscape = $config !== null
             && ($config['tipe'] ?? '') === 'tabel'

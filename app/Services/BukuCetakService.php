@@ -13,6 +13,7 @@ use App\Models\Kelurahan;
 use App\Models\Notulen;
 use App\Models\Orang;
 use App\Models\Presensi;
+use App\Models\ProgramKerja;
 use App\Support\FormatTanggalIndonesia;
 use App\Support\FormatUang;
 use Carbon\Carbon;
@@ -69,6 +70,8 @@ class BukuCetakService
             'buku_inventaris' => $this->barisBukuInventaris($filter, $kelurahan),
             'kas_pokja' => $this->barisKasPokja($filter, $kelurahan),
             'kas_tabungan' => $this->barisKasTabungan($filter, $kelurahan),
+            'program_kerja' => $this->barisProgramKerja($filter, $kelurahan),
+            'program_kerja_matriks' => $this->barisProgramKerjaMatriks($filter, $kelurahan),
             default => [],
         };
 
@@ -508,6 +511,101 @@ class BukuCetakService
                     'keterangan' => $item->keterangan ?: '—',
                 ],
             ];
+            $no++;
+        }
+
+        return $baris;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filter
+     * @return list<array{cells: array<string, string>}>
+     */
+    private function barisProgramKerja(array $filter, ?Kelurahan $kelurahan): array
+    {
+        $query = ProgramKerja::query()
+            ->tahun($filter['tahun'])
+            ->orderByRaw('CASE WHEN kode IS NULL OR kode = "" THEN 1 ELSE 0 END')
+            ->orderBy('kode')
+            ->orderBy('id');
+
+        if ($kelurahan) {
+            $query->where('kelurahan_id', $kelurahan->id);
+        }
+
+        if ($filter['pokja_id']) {
+            $query->where('pokja_id', $filter['pokja_id']);
+        } else {
+            $query->whereNull('pokja_id');
+        }
+
+        $baris = [];
+        $no = 1;
+        foreach ($query->get() as $item) {
+            $baris[] = [
+                'cells' => [
+                    'no' => $item->nomorTampilan($no),
+                    'program' => $item->program ?: '—',
+                    'kegiatan' => $item->kegiatan,
+                    'tanggal_kegiatan' => $this->formatTanggal($item->tanggal_kegiatan),
+                    'tujuan' => $item->tujuan ?: '—',
+                    'sasaran' => $item->sasaran ?: '—',
+                    'tempat' => $item->tempat ?: '—',
+                    'sumber_dana' => $item->sumber_dana ?: '—',
+                    'keterangan' => $item->keterangan ?: '—',
+                ],
+            ];
+            $no++;
+        }
+
+        return $baris;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filter
+     * @return list<array{cells: array<string, string>}>
+     */
+    private function barisProgramKerjaMatriks(array $filter, ?Kelurahan $kelurahan): array
+    {
+        $query = ProgramKerja::query()
+            ->with('kegiatanTertaut')
+            ->tahun($filter['tahun'])
+            ->orderByRaw('CASE WHEN kode IS NULL OR kode = "" THEN 1 ELSE 0 END')
+            ->orderBy('kode')
+            ->orderBy('id');
+
+        if ($kelurahan) {
+            $query->where('kelurahan_id', $kelurahan->id);
+        }
+
+        if ($filter['pokja_id']) {
+            $query->where('pokja_id', $filter['pokja_id']);
+        } else {
+            $query->whereNull('pokja_id');
+        }
+
+        $baris = [];
+        $no = 1;
+        foreach ($query->get() as $item) {
+            $cells = [
+                'no' => $item->nomorTampilan($no),
+                'jenis_kegiatan' => $item->kegiatan,
+            ];
+
+            foreach (ProgramKerja::daftarBulan() as $bulan) {
+                $cells['rencana_'.$bulan] = $item->bulanRencanaTerpilih($bulan)
+                    ? ProgramKerja::TANDA_CENTANG
+                    : '';
+            }
+
+            $sumberPelaksanaan = $item->sumberBulanPelaksanaan();
+            foreach (ProgramKerja::daftarBulan() as $bulan) {
+                $cells['pelaksanaan_'.$bulan] = array_key_exists($bulan, $sumberPelaksanaan)
+                    ? ProgramKerja::TANDA_CENTANG
+                    : '';
+            }
+
+            $baris[] = ['cells' => $cells];
             $no++;
         }
 

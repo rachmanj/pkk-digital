@@ -86,6 +86,15 @@ class ConfigureAdminLteMenu
             ]);
         }
 
+        if ($this->can($user, PkkPermission::LIHAT_PROGRAM_KERJA, PkkPermission::KELOLA_PROGRAM_KERJA)) {
+            $event->menu->add([
+                'text' => 'Program Kerja',
+                'url' => 'program-kerja',
+                'icon' => 'bi bi-list-check',
+                'active' => ['program-kerja*'],
+            ]);
+        }
+
         if ($user instanceof User && $user->can(PkkPermission::KELOLA_PENGGUNA)) {
             $event->menu->add([
                 'text' => 'Pengguna',

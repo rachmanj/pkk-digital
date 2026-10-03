@@ -14,6 +14,8 @@ use App\Exports\InventarisExport;
 use App\Exports\KasPokjaExport;
 use App\Exports\KasTabunganExport;
 use App\Exports\NotulenExport;
+use App\Exports\ProgramKerjaExport;
+use App\Exports\ProgramKerjaMatriksExport;
 use App\Http\Controllers\Concerns\HandlesPokjaScope;
 use App\Models\KasTutupBuku;
 use App\Services\BukuCetakService;
@@ -44,6 +46,8 @@ class CetakController extends Controller
         'buku_inventaris' => InventarisExport::class,
         'kas_pokja' => KasPokjaExport::class,
         'kas_tabungan' => KasTabunganExport::class,
+        'program_kerja' => ProgramKerjaExport::class,
+        'program_kerja_matriks' => ProgramKerjaMatriksExport::class,
     ];
 
     /** @var list<string> */
@@ -51,6 +55,9 @@ class CetakController extends Controller
 
     /** @var list<string> */
     private const INVENTARIS_BUKU = ['buku_inventaris'];
+
+    /** @var list<string> */
+    private const PROGRAM_KERJA_BUKU = ['program_kerja', 'program_kerja_matriks'];
 
     public function __construct(
         private BukuCetakService $bukuCetakService,
@@ -154,6 +161,14 @@ class CetakController extends Controller
             return;
         }
 
+        if (in_array($buku, self::PROGRAM_KERJA_BUKU, true)) {
+            if (! $user->can(PkkPermission::LIHAT_PROGRAM_KERJA) && ! $user->can(PkkPermission::KELOLA_PROGRAM_KERJA)) {
+                abort(403);
+            }
+
+            return;
+        }
+
         if (! $user->can(PkkPermission::LIHAT_BUKU) && ! $user->can(PkkPermission::VERIFIKASI_BUKU)) {
             abort(403);
         }
@@ -174,6 +189,10 @@ class CetakController extends Controller
 
         if (($dataset['tipe'] ?? '') === 'kas_tabungan') {
             return 'cetak.kas_tabungan';
+        }
+
+        if (($dataset['tipe'] ?? '') === 'program_kerja_matriks') {
+            return 'cetak.program_kerja_matriks';
         }
 
         return 'cetak.tabel';
@@ -197,7 +216,9 @@ class CetakController extends Controller
      */
     private function authorizeCetakPokja(string $buku, array $filter): void
     {
-        if (in_array($buku, self::KAS_BUKU, true) || in_array($buku, self::INVENTARIS_BUKU, true)) {
+        if (in_array($buku, self::KAS_BUKU, true)
+            || in_array($buku, self::INVENTARIS_BUKU, true)
+            || in_array($buku, self::PROGRAM_KERJA_BUKU, true)) {
             $pokjaId = $filter['pokja_id'] ?? null;
             if ($pokjaId === null && isset($filter['buku']) && is_string($filter['buku']) && str_starts_with($filter['buku'], 'pokja-')) {
                 $pokjaId = (int) substr($filter['buku'], 6);

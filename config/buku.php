@@ -219,4 +219,47 @@ return [
         ],
     ],
 
+    'program_kerja' => [
+        'judul' => 'Program Kerja',
+        'tipe' => 'tabel',
+        'tanda_tangan' => [
+            ['peran' => 'Ketua'],
+            ['peran' => 'Sekretaris'],
+        ],
+        'kolom' => [
+            ['label' => 'NO.', 'key' => 'no'],
+            ['label' => 'PROGRAM', 'key' => 'program'],
+            ['label' => 'KEGIATAN', 'key' => 'kegiatan'],
+            ['label' => 'TGL. KEGIATAN', 'key' => 'tanggal_kegiatan'],
+            ['label' => 'TUJUAN', 'key' => 'tujuan'],
+            ['label' => 'SASARAN', 'key' => 'sasaran'],
+            ['label' => 'TEMPAT', 'key' => 'tempat'],
+            ['label' => 'SUMBER DANA', 'key' => 'sumber_dana'],
+            ['label' => 'KET.', 'key' => 'keterangan'],
+        ],
+    ],
+
+    'program_kerja_matriks' => [
+        'judul' => 'Program Kerja & Pelaksanaan Program Kerja',
+        'tipe' => 'program_kerja_matriks',
+        'tanda_tangan' => [
+            ['peran' => 'Ketua'],
+            ['peran' => 'Sekretaris'],
+        ],
+        'kolom' => array_merge(
+            [
+                ['label' => 'NO.', 'key' => 'no'],
+                ['label' => 'JENIS KEGIATAN', 'key' => 'jenis_kegiatan'],
+            ],
+            array_map(
+                fn (int $i): array => ['label' => (string) $i, 'key' => 'rencana_'.$i, 'group' => 'BULAN PERENCANAAN'],
+                range(1, 12)
+            ),
+            array_map(
+                fn (int $i): array => ['label' => (string) $i, 'key' => 'pelaksanaan_'.$i, 'group' => 'BULAN PELAKSANAAN'],
+                range(1, 12)
+            ),
+        ),
+    ],
+
 ];

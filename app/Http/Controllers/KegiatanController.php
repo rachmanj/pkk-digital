@@ -11,7 +11,9 @@ use App\Models\Notulen;
 use App\Models\Orang;
 use App\Models\Pokja;
 use App\Models\Presensi;
+use App\Models\ProgramKerja;
 use App\Models\Rt;
+use Illuminate\Support\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -106,6 +108,7 @@ class KegiatanController extends Controller
             'rtList' => $rtList,
             'orangList' => $orangList,
             'jenisList' => Kegiatan::daftarJenis(),
+            'programKerjaList' => $this->daftarProgramKerjaUntukForm($kelurahan, (int) now()->year, null),
         ]);
     }
 
@@ -135,6 +138,7 @@ class KegiatanController extends Controller
             'acara' => $validated['acara'],
             'uraian' => $validated['uraian'] ?? null,
             'pimpinan_rapat_id' => isset($validated['pimpinan_rapat_id']) ? (int) $validated['pimpinan_rapat_id'] : null,
+            'program_kerja_id' => ! empty($validated['program_kerja_id']) ? (int) $validated['program_kerja_id'] : null,
         ]);
 
         return redirect()->route('kegiatan.show', $kegiatan)
@@ -153,6 +157,7 @@ class KegiatanController extends Controller
             'presensi.orang',
             'notulen.pembuat',
             'foto.uploader',
+            'programKerja',
         ]);
 
         $orangList = Orang::query()
@@ -186,12 +191,19 @@ class KegiatanController extends Controller
             ->limit(500)
             ->get();
 
+        $tahun = $kegiatan->tanggal !== null ? (int) $kegiatan->tanggal->format('Y') : (int) now()->year;
+
         return view('kegiatan.edit', [
             'kegiatan' => $kegiatan,
             'pokjaList' => $pokjaList,
             'rtList' => $rtList,
             'orangList' => $orangList,
             'jenisList' => Kegiatan::daftarJenis(),
+            'programKerjaList' => $this->daftarProgramKerjaUntukForm(
+                $kegiatan->kelurahan,
+                $tahun,
+                $kegiatan->pokja_id,
+            ),
         ]);
     }
 
@@ -216,6 +228,7 @@ class KegiatanController extends Controller
             'acara' => $validated['acara'],
             'uraian' => $validated['uraian'] ?? null,
             'pimpinan_rapat_id' => isset($validated['pimpinan_rapat_id']) ? (int) $validated['pimpinan_rapat_id'] : null,
+            'program_kerja_id' => ! empty($validated['program_kerja_id']) ? (int) $validated['program_kerja_id'] : null,
         ]);
 
         return redirect()->route('kegiatan.show', $kegiatan)
@@ -371,6 +384,30 @@ class KegiatanController extends Controller
 
         return redirect()->route('kegiatan.show', $kegiatan)
             ->with('success', 'Notulen berhasil disimpan.');
+    }
+
+    /**
+     * @return Collection<int, ProgramKerja>
+     */
+    private function daftarProgramKerjaUntukForm(?Kelurahan $kelurahan, int $tahun, ?int $pokjaId): Collection
+    {
+        if ($kelurahan === null) {
+            return collect();
+        }
+
+        $query = ProgramKerja::query()
+            ->tahun($tahun)
+            ->where('kelurahan_id', $kelurahan->id)
+            ->orderBy('kode')
+            ->orderBy('kegiatan');
+
+        if ($pokjaId !== null) {
+            $query->where('pokja_id', $pokjaId);
+        } else {
+            $query->whereNull('pokja_id');
+        }
+
+        return $query->get();
     }
 
     private function activeKelurahan(): ?Kelurahan

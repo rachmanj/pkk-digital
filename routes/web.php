@@ -13,6 +13,7 @@ use App\Http\Controllers\KasController;
 use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\KegiatanFotoController;
 use App\Http\Controllers\OrangController;
+use App\Http\Controllers\ProgramKerjaController;
 use App\Http\Controllers\UserController;
 use App\Support\PkkPermission;
 use Illuminate\Support\Facades\Auth;
@@ -51,6 +52,7 @@ Route::middleware('auth')->group(function () {
     $lihatKunjungan = PkkPermission::middleware(PkkPermission::LIHAT_BUKU, PkkPermission::KELOLA_BUKU_KUNJUNGAN);
     $lihatKas = PkkPermission::middleware(PkkPermission::LIHAT_KAS, PkkPermission::KELOLA_KAS);
     $lihatInventaris = PkkPermission::middleware(PkkPermission::LIHAT_INVENTARIS, PkkPermission::KELOLA_INVENTARIS);
+    $lihatProgramKerja = PkkPermission::middleware(PkkPermission::LIHAT_PROGRAM_KERJA, PkkPermission::KELOLA_PROGRAM_KERJA);
 
     $cetakAkses = PkkPermission::middleware(
         PkkPermission::LIHAT_BUKU,
@@ -59,6 +61,8 @@ Route::middleware('auth')->group(function () {
         PkkPermission::KELOLA_KAS,
         PkkPermission::LIHAT_INVENTARIS,
         PkkPermission::KELOLA_INVENTARIS,
+        PkkPermission::LIHAT_PROGRAM_KERJA,
+        PkkPermission::KELOLA_PROGRAM_KERJA,
     );
 
     Route::get('cetak/{buku}', [CetakController::class, 'show'])
@@ -127,6 +131,14 @@ Route::middleware('auth')->group(function () {
     Route::get('inventaris/{inventaris_barang}/edit', [InventarisController::class, 'edit'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_INVENTARIS))->name('inventaris.edit');
     Route::put('inventaris/{inventaris_barang}', [InventarisController::class, 'update'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_INVENTARIS))->name('inventaris.update');
     Route::delete('inventaris/{inventaris_barang}', [InventarisController::class, 'destroy'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_INVENTARIS))->name('inventaris.destroy');
+
+    Route::get('program-kerja', [ProgramKerjaController::class, 'index'])->middleware($lihatProgramKerja)->name('program-kerja.index');
+    Route::get('program-kerja/create', [ProgramKerjaController::class, 'create'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_PROGRAM_KERJA))->name('program-kerja.create');
+    Route::post('program-kerja', [ProgramKerjaController::class, 'store'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_PROGRAM_KERJA))->name('program-kerja.store');
+    Route::get('program-kerja/{program_kerja}', [ProgramKerjaController::class, 'show'])->middleware($lihatProgramKerja)->name('program-kerja.show');
+    Route::get('program-kerja/{program_kerja}/edit', [ProgramKerjaController::class, 'edit'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_PROGRAM_KERJA))->name('program-kerja.edit');
+    Route::put('program-kerja/{program_kerja}', [ProgramKerjaController::class, 'update'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_PROGRAM_KERJA))->name('program-kerja.update');
+    Route::delete('program-kerja/{program_kerja}', [ProgramKerjaController::class, 'destroy'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_PROGRAM_KERJA))->name('program-kerja.destroy');
 
     Route::get('kas/rekap', [KasController::class, 'rekap'])->middleware($lihatKas)->name('kas.rekap');
     Route::get('kas/rekap/pdf', [KasController::class, 'rekapPdf'])->middleware($lihatKas)->name('kas.rekap.pdf');

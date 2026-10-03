@@ -90,4 +90,21 @@
         <label class="form-label" for="uraian">Uraian</label>
         <textarea name="uraian" id="uraian" class="form-control" rows="3">{{ old('uraian', $kegiatan->uraian ?? '') }}</textarea>
     </div>
+    @isset($programKerjaList)
+        <div class="col-12">
+            <label class="form-label" for="program_kerja_id">Tautkan ke program kerja (opsional)</label>
+            <select name="program_kerja_id" id="program_kerja_id" class="form-select">
+                <option value="">— Tidak ditaut —</option>
+                @foreach ($programKerjaList as $programKerja)
+                    <option value="{{ $programKerja->id }}" @selected((string) old('program_kerja_id', $kegiatan->program_kerja_id ?? '') === (string) $programKerja->id)>
+                        @if ($programKerja->kode)
+                            [{{ $programKerja->kode }}]
+                        @endif
+                        {{ $programKerja->kegiatan }} ({{ $programKerja->tahun }})
+                    </option>
+                @endforeach
+            </select>
+            <div class="form-text">Hanya butir program kerja dengan tahun dan unit yang sama dengan kegiatan.</div>
+        </div>
+    @endisset
 </div>

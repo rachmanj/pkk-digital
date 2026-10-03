@@ -63,6 +63,7 @@ class Kegiatan extends Model
         'acara',
         'uraian',
         'pimpinan_rapat_id',
+        'program_kerja_id',
     ];
 
     protected function casts(): array
@@ -98,6 +99,11 @@ class Kegiatan extends Model
     public function pimpinanRapat(): BelongsTo
     {
         return $this->belongsTo(Orang::class, 'pimpinan_rapat_id');
+    }
+
+    public function programKerja(): BelongsTo
+    {
+        return $this->belongsTo(ProgramKerja::class, 'program_kerja_id');
     }
 
     public function presensi(): HasMany

@@ -3,8 +3,10 @@
 namespace App\Http\Requests\Concerns;
 
 use App\Models\Kegiatan;
+use App\Models\Kelurahan;
 use App\Models\Orang;
 use App\Models\Pokja;
+use App\Models\ProgramKerja;
 use App\Models\Rt;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -28,6 +30,7 @@ trait ValidatesKegiatanInput
             'acara' => ['required', 'string', 'max:255'],
             'uraian' => ['nullable', 'string'],
             'pimpinan_rapat_id' => ['nullable', 'integer', Rule::exists(Orang::class, 'id')],
+            'program_kerja_id' => ['nullable', 'integer', Rule::exists(ProgramKerja::class, 'id')],
         ];
     }
 
@@ -72,6 +75,39 @@ trait ValidatesKegiatanInput
                 $exists = Orang::query()->whereKey((int) $pimpinanId)->exists();
                 if (! $exists) {
                     $validator->errors()->add('pimpinan_rapat_id', 'Pimpinan rapat yang dipilih tidak valid.');
+                }
+            }
+
+            $programKerjaId = $this->input('program_kerja_id');
+            if ($programKerjaId === null || $programKerjaId === '') {
+                return;
+            }
+
+            $programKerja = ProgramKerja::query()->find((int) $programKerjaId);
+            if ($programKerja === null) {
+                $validator->errors()->add('program_kerja_id', 'Program kerja yang dipilih tidak valid.');
+
+                return;
+            }
+
+            $kelurahan = Kelurahan::query()->where('is_active', true)->first();
+            if ($kelurahan === null || $programKerja->kelurahan_id !== $kelurahan->id) {
+                $validator->errors()->add('program_kerja_id', 'Program kerja harus dari kelurahan aktif.');
+
+                return;
+            }
+
+            $pokjaId = $this->input('pokja_id');
+            $pokjaIdInt = ($pokjaId !== null && $pokjaId !== '') ? (int) $pokjaId : null;
+            if ($programKerja->pokja_id !== $pokjaIdInt) {
+                $validator->errors()->add('program_kerja_id', 'Program kerja harus dari unit yang sama dengan kegiatan.');
+            }
+
+            $tanggal = $this->input('tanggal');
+            if ($tanggal !== null && $tanggal !== '') {
+                $tahunKegiatan = (int) date('Y', strtotime((string) $tanggal));
+                if ($programKerja->tahun !== $tahunKegiatan) {
+                    $validator->errors()->add('program_kerja_id', 'Program kerja harus berada pada tahun yang sama dengan tanggal kegiatan.');
                 }
             }
         });
