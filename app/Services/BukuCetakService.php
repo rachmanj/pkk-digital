@@ -14,6 +14,8 @@ use App\Models\Notulen;
 use App\Models\Orang;
 use App\Models\Presensi;
 use App\Models\ProgramKerja;
+use App\Models\StrukturPengurus;
+use App\Support\ActiveKelurahan;
 use App\Support\FormatTanggalIndonesia;
 use App\Support\FormatUang;
 use Carbon\Carbon;
@@ -35,7 +37,7 @@ class BukuCetakService
         }
 
         $filter = $this->normalisasiFilter($filter);
-        $kelurahan = Kelurahan::query()->where('is_active', true)->first();
+        $kelurahan = app(ActiveKelurahan::class)->resolve();
 
         $payload = [
             'kode' => $kodeBuku,
@@ -56,6 +58,14 @@ class BukuCetakService
             $payload['tahun'] = $hasil['kegiatan']?->tanggal?->year ?? $filter['tahun'];
 
             return $payload;
+        }
+
+        if ($config['tipe'] === 'struktur_pkk') {
+            return $this->muatStrukturPkk($payload, $filter, $kelurahan);
+        }
+
+        if ($config['tipe'] === 'struktur_lbs') {
+            return $this->muatStrukturLbs($payload, $filter, $kelurahan);
         }
 
         $payload['baris'] = match ($kodeBuku) {
@@ -110,6 +120,10 @@ class BukuCetakService
             ? (int) $filter['tutup_buku']
             : null;
 
+        $rt = isset($filter['rt']) && $filter['rt'] !== ''
+            ? (string) $filter['rt']
+            : null;
+
         return [
             'tahun' => $tahun,
             'dari' => $this->parseTanggal($filter['dari'] ?? null),
@@ -118,6 +132,7 @@ class BukuCetakService
             'kegiatan' => $kegiatanId,
             'buku' => $buku,
             'tutup_buku' => $tutupBukuId,
+            'rt' => $rt,
         ];
     }
 
@@ -666,6 +681,124 @@ class BukuCetakService
     public static function kodeTerdaftar(string $kode): bool
     {
         return Arr::has(config('buku'), $kode);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $filter
+     * @return array<string, mixed>
+     */
+    private function muatStrukturPkk(array $payload, array $filter, ?Kelurahan $kelurahan): array
+    {
+        $query = StrukturPengurus::query()->urut();
+        if ($kelurahan) {
+            $query->where('kelurahan_id', $kelurahan->id);
+        }
+
+        $tpPkk = (clone $query)->unit(StrukturPengurus::UNIT_TP_PKK)->get();
+        $pokjaRows = (clone $query)->unit(StrukturPengurus::UNIT_POKJA)->with('pokja')->get();
+
+        $pokjaGrouped = StrukturPengurus::kelompokkanPerPokja($pokjaRows);
+
+        $payload['kelurahan'] = $kelurahan;
+        $payload['struktur_tp'] = StrukturPengurus::kelompokkanPerJabatan($tpPkk);
+        $payload['struktur_pokja'] = $pokjaGrouped;
+        $payload['baris'] = $this->barisStrukturPkk($tpPkk, $pokjaRows);
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $filter
+     * @return array<string, mixed>
+     */
+    private function muatStrukturLbs(array $payload, array $filter, ?Kelurahan $kelurahan): array
+    {
+        $query = StrukturPengurus::query()
+            ->unit(StrukturPengurus::UNIT_LBS)
+            ->urut();
+
+        if ($kelurahan) {
+            $query->where('kelurahan_id', $kelurahan->id);
+        }
+
+        if ($filter['rt'] !== null) {
+            $query->where('rt', $filter['rt']);
+        }
+
+        $rows = $query->get();
+        $rt = $filter['rt'] ?? $rows->first()?->rt ?? '—';
+
+        $payload['kelurahan'] = $kelurahan;
+        $payload['rt'] = $rt;
+        $payload['struktur_lbs'] = StrukturPengurus::kelompokkanPerJabatan($rows);
+        $payload['baris'] = $this->barisStrukturLbs($rows, $rt);
+
+        if ($kelurahan && $filter['rt'] === null) {
+            $payload['judul'] = sprintf('Struktur Pengurus LBS RT %s Kelurahan %s', $rt, $kelurahan->nama);
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, StrukturPengurus>  $tpPkk
+     * @param  \Illuminate\Support\Collection<int, StrukturPengurus>  $pokjaRows
+     * @return list<array{cells: array<string, string>}>
+     */
+    private function barisStrukturPkk($tpPkk, $pokjaRows): array
+    {
+        $baris = [];
+
+        foreach ($tpPkk as $row) {
+            $baris[] = [
+                'cells' => [
+                    'bagian' => 'TP PKK',
+                    'jabatan' => $row->jabatan,
+                    'nama' => $row->nama,
+                    'keterangan' => $row->keterangan ?? '—',
+                ],
+            ];
+        }
+
+        foreach ($pokjaRows->groupBy('pokja_id') as $pokjaId => $group) {
+            $pokja = $group->first()?->pokja;
+            $namaPokja = $pokja ? 'Pokja '.$pokja->kode : 'Pokja';
+            foreach ($group->sortBy(['urutan', 'nama']) as $row) {
+                $baris[] = [
+                    'cells' => [
+                        'bagian' => $namaPokja,
+                        'jabatan' => $row->jabatan,
+                        'nama' => $row->nama,
+                        'keterangan' => $row->keterangan ?? '—',
+                    ],
+                ];
+            }
+        }
+
+        return $baris;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, StrukturPengurus>  $rows
+     * @return list<array{cells: array<string, string>}>
+     */
+    private function barisStrukturLbs($rows, string $rt): array
+    {
+        $baris = [];
+        foreach ($rows as $row) {
+            $baris[] = [
+                'cells' => [
+                    'rt' => $row->rt ?? $rt,
+                    'jabatan' => $row->jabatan,
+                    'nama' => $row->nama,
+                    'keterangan' => $row->keterangan ?? '—',
+                ],
+            ];
+        }
+
+        return $baris;
     }
 
     /**

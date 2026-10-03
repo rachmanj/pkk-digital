@@ -36,6 +36,10 @@ final class PkkPermission
 
     public const LIHAT_PROGRAM_KERJA = 'lihat_program_kerja';
 
+    public const KELOLA_STRUKTUR = 'kelola_struktur';
+
+    public const LIHAT_STRUKTUR = 'lihat_struktur';
+
     /**
      * @return list<string>
      */
@@ -58,6 +62,8 @@ final class PkkPermission
             self::LIHAT_INVENTARIS,
             self::KELOLA_PROGRAM_KERJA,
             self::LIHAT_PROGRAM_KERJA,
+            self::KELOLA_STRUKTUR,
+            self::LIHAT_STRUKTUR,
         ];
     }
 

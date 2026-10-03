@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesActiveKelurahan;
 use App\Http\Requests\StoreBukuKunjunganRequest;
 use App\Http\Requests\UpdateBukuKunjunganRequest;
 use App\Models\BukuKunjungan;
@@ -14,6 +15,8 @@ use Illuminate\View\View;
 
 class BukuKunjunganController extends Controller
 {
+    use ResolvesActiveKelurahan;
+
     public function index(Request $request): View
     {
         $kelurahan = $this->activeKelurahan();
@@ -146,8 +149,4 @@ class BukuKunjunganController extends Controller
             ->with('success', 'Buku kunjungan berhasil dihapus.');
     }
 
-    private function activeKelurahan(): ?Kelurahan
-    {
-        return Kelurahan::query()->where('is_active', true)->first();
-    }
 }

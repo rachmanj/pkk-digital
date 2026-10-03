@@ -16,6 +16,8 @@ use App\Exports\KasTabunganExport;
 use App\Exports\NotulenExport;
 use App\Exports\ProgramKerjaExport;
 use App\Exports\ProgramKerjaMatriksExport;
+use App\Exports\StrukturLbsExport;
+use App\Exports\StrukturPkkExport;
 use App\Http\Controllers\Concerns\HandlesPokjaScope;
 use App\Models\KasTutupBuku;
 use App\Services\BukuCetakService;
@@ -48,7 +50,12 @@ class CetakController extends Controller
         'kas_tabungan' => KasTabunganExport::class,
         'program_kerja' => ProgramKerjaExport::class,
         'program_kerja_matriks' => ProgramKerjaMatriksExport::class,
+        'struktur_pkk' => StrukturPkkExport::class,
+        'struktur_lbs' => StrukturLbsExport::class,
     ];
+
+    /** @var list<string> */
+    private const STRUKTUR_BUKU = ['struktur_pkk', 'struktur_lbs'];
 
     /** @var list<string> */
     private const KAS_BUKU = ['kas_pokja', 'kas_tabungan'];
@@ -169,6 +176,14 @@ class CetakController extends Controller
             return;
         }
 
+        if (in_array($buku, self::STRUKTUR_BUKU, true)) {
+            if (! $user->can(PkkPermission::LIHAT_STRUKTUR) && ! $user->can(PkkPermission::KELOLA_STRUKTUR)) {
+                abort(403);
+            }
+
+            return;
+        }
+
         if (! $user->can(PkkPermission::LIHAT_BUKU) && ! $user->can(PkkPermission::VERIFIKASI_BUKU)) {
             abort(403);
         }
@@ -193,6 +208,14 @@ class CetakController extends Controller
 
         if (($dataset['tipe'] ?? '') === 'program_kerja_matriks') {
             return 'cetak.program_kerja_matriks';
+        }
+
+        if (($dataset['tipe'] ?? '') === 'struktur_pkk') {
+            return 'cetak.struktur_pkk';
+        }
+
+        if (($dataset['tipe'] ?? '') === 'struktur_lbs') {
+            return 'cetak.struktur_lbs';
         }
 
         return 'cetak.tabel';
@@ -249,7 +272,7 @@ class CetakController extends Controller
      */
     private function filterDariRequest(Request $request): array
     {
-        return $request->only(['tahun', 'dari', 'sampai', 'pokja_id', 'kegiatan', 'buku', 'tutup_buku']);
+        return $request->only(['tahun', 'dari', 'sampai', 'pokja_id', 'kegiatan', 'buku', 'tutup_buku', 'rt']);
     }
 
     private function namaBerkas(string $buku, int|string $tahun, string $ext): string

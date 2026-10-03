@@ -90,7 +90,7 @@ trait ValidatesKegiatanInput
                 return;
             }
 
-            $kelurahan = Kelurahan::query()->where('is_active', true)->first();
+            $kelurahan = app(\App\Support\ActiveKelurahan::class)->resolve($this->user());
             if ($kelurahan === null || $programKerja->kelurahan_id !== $kelurahan->id) {
                 $validator->errors()->add('program_kerja_id', 'Program kerja harus dari kelurahan aktif.');
 

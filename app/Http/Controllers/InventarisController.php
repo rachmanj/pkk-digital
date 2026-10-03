@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HandlesPokjaScope;
+use App\Http\Controllers\Concerns\ResolvesActiveKelurahan;
 use App\Http\Requests\StoreInventarisBarangRequest;
 use App\Http\Requests\UpdateInventarisBarangRequest;
 use App\Models\InventarisBarang;
@@ -15,6 +16,7 @@ use Illuminate\View\View;
 class InventarisController extends Controller
 {
     use HandlesPokjaScope;
+    use ResolvesActiveKelurahan;
 
     public function index(Request $request): View
     {
@@ -191,8 +193,4 @@ class InventarisController extends Controller
             ->with('success', 'Inventaris barang berhasil dihapus.');
     }
 
-    private function activeKelurahan(): ?Kelurahan
-    {
-        return Kelurahan::query()->where('is_active', true)->first();
-    }
 }

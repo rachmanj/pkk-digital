@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HandlesPokjaScope;
+use App\Http\Controllers\Concerns\ResolvesActiveKelurahan;
 use App\Http\Requests\StoreAgendaSuratRequest;
 use App\Http\Requests\UpdateAgendaSuratRequest;
 use App\Models\AgendaSurat;
@@ -20,6 +21,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class AgendaSuratController extends Controller
 {
     use HandlesPokjaScope;
+    use ResolvesActiveKelurahan;
 
     public function index(Request $request): View
     {
@@ -260,11 +262,6 @@ class AgendaSuratController extends Controller
         }
 
         return Storage::disk('local')->response($agendaSurat->file_path);
-    }
-
-    private function activeKelurahan(): ?Kelurahan
-    {
-        return Kelurahan::query()->where('is_active', true)->first();
     }
 
     private function storeBerkas(StoreAgendaSuratRequest|UpdateAgendaSuratRequest $request, AgendaSurat $agendaSurat): void

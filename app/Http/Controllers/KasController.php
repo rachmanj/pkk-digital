@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HandlesPokjaScope;
+use App\Http\Controllers\Concerns\ResolvesActiveKelurahan;
 use App\Http\Requests\StoreKasSaldoAwalRequest;
 use App\Http\Requests\StoreKasTransaksiRequest;
 use App\Http\Requests\StoreKasTutupBukuRequest;
@@ -22,6 +23,7 @@ use Illuminate\View\View;
 class KasController extends Controller
 {
     use HandlesPokjaScope;
+    use ResolvesActiveKelurahan;
 
     public function __construct(
         private readonly KasService $kasService
@@ -407,8 +409,4 @@ class KasController extends Controller
         ]);
     }
 
-    private function activeKelurahan(): ?Kelurahan
-    {
-        return Kelurahan::query()->where('is_active', true)->first();
-    }
 }

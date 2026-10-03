@@ -13,5 +13,6 @@
 @stop
 
 @section('content')
+    @include('partials.kelurahan-switcher')
     @yield('page_content')
 @stop

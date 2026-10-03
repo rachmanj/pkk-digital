@@ -38,6 +38,8 @@ class RolePermissionSeeder extends Seeder
             PkkPermission::LIHAT_INVENTARIS,
             PkkPermission::KELOLA_PROGRAM_KERJA,
             PkkPermission::LIHAT_PROGRAM_KERJA,
+            PkkPermission::KELOLA_STRUKTUR,
+            PkkPermission::LIHAT_STRUKTUR,
         ];
 
         $ketuaPokjaPermissions = array_values(array_filter(
@@ -54,6 +56,7 @@ class RolePermissionSeeder extends Seeder
             PkkPermission::KELOLA_KAS,
             PkkPermission::LIHAT_KAS,
             PkkPermission::LIHAT_INVENTARIS,
+            PkkPermission::LIHAT_STRUKTUR,
         ]);
         $this->syncRolePermissions('ketua', [
             PkkPermission::LIHAT_BUKU,
@@ -62,6 +65,7 @@ class RolePermissionSeeder extends Seeder
             PkkPermission::LIHAT_KAS,
             PkkPermission::LIHAT_INVENTARIS,
             PkkPermission::LIHAT_PROGRAM_KERJA,
+            PkkPermission::LIHAT_STRUKTUR,
         ]);
         $this->syncRolePermissions('ketua_pokja', $ketuaPokjaPermissions);
         $this->syncRolePermissions('kader', [
@@ -70,6 +74,7 @@ class RolePermissionSeeder extends Seeder
             PkkPermission::KELOLA_BUKU_TAMU,
             PkkPermission::LIHAT_INVENTARIS,
             PkkPermission::LIHAT_PROGRAM_KERJA,
+            PkkPermission::LIHAT_STRUKTUR,
         ]);
 
         $password = env('ADMIN_PASSWORD', 'password');

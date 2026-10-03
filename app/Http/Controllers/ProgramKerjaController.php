@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HandlesPokjaScope;
+use App\Http\Controllers\Concerns\ResolvesActiveKelurahan;
 use App\Http\Requests\StoreProgramKerjaRequest;
 use App\Http\Requests\UpdateProgramKerjaRequest;
 use App\Models\Kelurahan;
@@ -15,6 +16,7 @@ use Illuminate\View\View;
 class ProgramKerjaController extends Controller
 {
     use HandlesPokjaScope;
+    use ResolvesActiveKelurahan;
 
     public function index(Request $request): View
     {
@@ -192,8 +194,4 @@ class ProgramKerjaController extends Controller
             ->with('success', 'Program kerja berhasil dihapus.');
     }
 
-    private function activeKelurahan(): ?Kelurahan
-    {
-        return Kelurahan::query()->where('is_active', true)->first();
-    }
 }

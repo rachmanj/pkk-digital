@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesActiveKelurahan;
 use App\Http\Requests\StoreOrangRequest;
 use App\Http\Requests\UpdateOrangRequest;
 use App\Models\Keanggotaan;
@@ -18,6 +19,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrangController extends Controller
 {
+    use ResolvesActiveKelurahan;
+
     public function index(Request $request): View
     {
         $kelurahan = $this->activeKelurahan();
@@ -228,11 +231,6 @@ class OrangController extends Controller
         }
 
         return Storage::disk('local')->response($orang->foto_path);
-    }
-
-    private function activeKelurahan(): ?Kelurahan
-    {
-        return Kelurahan::query()->where('is_active', true)->first();
     }
 
     /**

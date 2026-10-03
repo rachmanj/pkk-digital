@@ -239,6 +239,36 @@ return [
         ],
     ],
 
+    'struktur_pkk' => [
+        'judul' => 'Struktur Pengurus TP PKK Kelurahan',
+        'tipe' => 'struktur_pkk',
+        'tanda_tangan' => [
+            ['peran' => 'Ketua'],
+            ['peran' => 'Sekretaris'],
+        ],
+        'kolom' => [
+            ['label' => 'UNIT / BAGIAN', 'key' => 'bagian'],
+            ['label' => 'JABATAN', 'key' => 'jabatan'],
+            ['label' => 'NAMA', 'key' => 'nama'],
+            ['label' => 'KETERANGAN', 'key' => 'keterangan'],
+        ],
+    ],
+
+    'struktur_lbs' => [
+        'judul' => 'Struktur Pengurus LBS',
+        'tipe' => 'struktur_lbs',
+        'tanda_tangan' => [
+            ['peran' => 'Ketua'],
+            ['peran' => 'Sekretaris'],
+        ],
+        'kolom' => [
+            ['label' => 'RT', 'key' => 'rt'],
+            ['label' => 'JABATAN', 'key' => 'jabatan'],
+            ['label' => 'NAMA', 'key' => 'nama'],
+            ['label' => 'KETERANGAN', 'key' => 'keterangan'],
+        ],
+    ],
+
     'program_kerja_matriks' => [
         'judul' => 'Program Kerja & Pelaksanaan Program Kerja',
         'tipe' => 'program_kerja_matriks',

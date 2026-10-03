@@ -13,7 +13,9 @@ use App\Http\Controllers\KasController;
 use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\KegiatanFotoController;
 use App\Http\Controllers\OrangController;
+use App\Http\Controllers\KelurahanAktifController;
 use App\Http\Controllers\ProgramKerjaController;
+use App\Http\Controllers\StrukturController;
 use App\Http\Controllers\UserController;
 use App\Support\PkkPermission;
 use Illuminate\Support\Facades\Auth;
@@ -53,6 +55,7 @@ Route::middleware('auth')->group(function () {
     $lihatKas = PkkPermission::middleware(PkkPermission::LIHAT_KAS, PkkPermission::KELOLA_KAS);
     $lihatInventaris = PkkPermission::middleware(PkkPermission::LIHAT_INVENTARIS, PkkPermission::KELOLA_INVENTARIS);
     $lihatProgramKerja = PkkPermission::middleware(PkkPermission::LIHAT_PROGRAM_KERJA, PkkPermission::KELOLA_PROGRAM_KERJA);
+    $lihatStruktur = PkkPermission::middleware(PkkPermission::LIHAT_STRUKTUR, PkkPermission::KELOLA_STRUKTUR);
 
     $cetakAkses = PkkPermission::middleware(
         PkkPermission::LIHAT_BUKU,
@@ -63,7 +66,13 @@ Route::middleware('auth')->group(function () {
         PkkPermission::KELOLA_INVENTARIS,
         PkkPermission::LIHAT_PROGRAM_KERJA,
         PkkPermission::KELOLA_PROGRAM_KERJA,
+        PkkPermission::LIHAT_STRUKTUR,
+        PkkPermission::KELOLA_STRUKTUR,
     );
+
+    Route::post('kelurahan-aktif', [KelurahanAktifController::class, 'update'])
+        ->middleware('auth')
+        ->name('kelurahan-aktif.update');
 
     Route::get('cetak/{buku}', [CetakController::class, 'show'])
         ->middleware($cetakAkses)
@@ -131,6 +140,21 @@ Route::middleware('auth')->group(function () {
     Route::get('inventaris/{inventaris_barang}/edit', [InventarisController::class, 'edit'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_INVENTARIS))->name('inventaris.edit');
     Route::put('inventaris/{inventaris_barang}', [InventarisController::class, 'update'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_INVENTARIS))->name('inventaris.update');
     Route::delete('inventaris/{inventaris_barang}', [InventarisController::class, 'destroy'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_INVENTARIS))->name('inventaris.destroy');
+
+    Route::post('struktur/{struktur}/naik', [StrukturController::class, 'naik'])
+        ->middleware(PkkPermission::middleware(PkkPermission::KELOLA_STRUKTUR))
+        ->name('struktur.naik');
+    Route::post('struktur/{struktur}/turun', [StrukturController::class, 'turun'])
+        ->middleware(PkkPermission::middleware(PkkPermission::KELOLA_STRUKTUR))
+        ->name('struktur.turun');
+
+    Route::get('struktur', [StrukturController::class, 'index'])->middleware($lihatStruktur)->name('struktur.index');
+    Route::get('struktur/create', [StrukturController::class, 'create'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_STRUKTUR))->name('struktur.create');
+    Route::post('struktur', [StrukturController::class, 'store'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_STRUKTUR))->name('struktur.store');
+    Route::get('struktur/{struktur}', [StrukturController::class, 'show'])->middleware($lihatStruktur)->name('struktur.show');
+    Route::get('struktur/{struktur}/edit', [StrukturController::class, 'edit'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_STRUKTUR))->name('struktur.edit');
+    Route::put('struktur/{struktur}', [StrukturController::class, 'update'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_STRUKTUR))->name('struktur.update');
+    Route::delete('struktur/{struktur}', [StrukturController::class, 'destroy'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_STRUKTUR))->name('struktur.destroy');
 
     Route::get('program-kerja', [ProgramKerjaController::class, 'index'])->middleware($lihatProgramKerja)->name('program-kerja.index');
     Route::get('program-kerja/create', [ProgramKerjaController::class, 'create'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_PROGRAM_KERJA))->name('program-kerja.create');

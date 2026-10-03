@@ -95,6 +95,15 @@ class ConfigureAdminLteMenu
             ]);
         }
 
+        if ($this->can($user, PkkPermission::LIHAT_STRUKTUR, PkkPermission::KELOLA_STRUKTUR)) {
+            $event->menu->add([
+                'text' => 'Struktur Pengurus',
+                'url' => 'struktur',
+                'icon' => 'bi bi-diagram-3',
+                'active' => ['struktur*'],
+            ]);
+        }
+
         if ($user instanceof User && $user->can(PkkPermission::KELOLA_PENGGUNA)) {
             $event->menu->add([
                 'text' => 'Pengguna',

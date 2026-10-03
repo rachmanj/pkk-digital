@@ -49,6 +49,9 @@ class CetakTest extends TestCase
             $config = config('buku.'.$kode);
             if ($config['tipe'] === 'notulen') {
                 $response->assertSee('Nama kegiatan', false);
+            } elseif (in_array($config['tipe'], ['struktur_pkk', 'struktur_lbs'], true)) {
+                $firstLabel = $config['kolom'][0]['label'];
+                $response->assertSee($firstLabel, false);
             } else {
                 $firstLabel = $config['kolom'][0]['label'];
                 $response->assertSee($firstLabel, false);

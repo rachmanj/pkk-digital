@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HandlesPokjaScope;
+use App\Http\Controllers\Concerns\ResolvesActiveKelurahan;
 use App\Http\Requests\StoreBukuTamuRequest;
 use App\Http\Requests\UpdateBukuTamuRequest;
 use App\Models\BukuTamu;
@@ -16,6 +17,7 @@ use Illuminate\View\View;
 class BukuTamuController extends Controller
 {
     use HandlesPokjaScope;
+    use ResolvesActiveKelurahan;
 
     public function index(Request $request): View
     {
@@ -181,8 +183,4 @@ class BukuTamuController extends Controller
             ->with('success', 'Buku tamu berhasil dihapus.');
     }
 
-    private function activeKelurahan(): ?Kelurahan
-    {
-        return Kelurahan::query()->where('is_active', true)->first();
-    }
 }
