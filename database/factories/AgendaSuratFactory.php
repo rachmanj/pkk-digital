@@ -25,6 +25,7 @@ class AgendaSuratFactory extends Factory
             'jenis' => $jenis,
             'pokja_id' => null,
             'no_urut_tahun' => 1,
+            'tahun' => (int) $tanggalSurat->format('Y'),
             'tanggal_surat' => $tanggalSurat,
             'tanggal_terima' => $jenis === AgendaSurat::JENIS_MASUK ? $tanggalSurat : null,
             'no_surat' => strtoupper($faker->bothify('???/###/PKK')),

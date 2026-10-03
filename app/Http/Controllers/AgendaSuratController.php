@@ -148,6 +148,7 @@ class AgendaSuratController extends Controller
                 'jenis' => $validated['jenis'],
                 'pokja_id' => $pokjaId,
                 'no_urut_tahun' => $noUrut,
+                'tahun' => $tahun,
                 'tanggal_surat' => $validated['tanggal_surat'],
                 'tanggal_terima' => $validated['tanggal_terima'] ?? null,
                 'no_surat' => $validated['no_surat'],

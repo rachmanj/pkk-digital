@@ -294,4 +294,187 @@ class AgendaSuratTest extends TestCase
             ->assertOk()
             ->assertSee('UI/1');
     }
+
+    public function test_store_surat_masuk_tahun_berbeda_pada_buku_pokja_sama_keduanya_nomor_satu(): void
+    {
+        $user = $this->actingAdmin();
+        ['pokja' => $pokjaList] = $this->seedMaster();
+        $pokjaId = $pokjaList->first()->id;
+
+        $payload2026 = $this->validMasukPayload([
+            'pokja_id' => $pokjaId,
+            'tanggal_surat' => '2026-03-01',
+            'tanggal_terima' => '2026-03-02',
+            'no_surat' => 'MASUK/2026/1',
+        ]);
+
+        $response2026 = $this->actingAs($user)
+            ->post(route('agenda-surat.store'), $payload2026);
+
+        $response2026->assertRedirect();
+        $surat2026 = AgendaSurat::query()->where('no_surat', 'MASUK/2026/1')->first();
+        $this->assertNotNull($surat2026);
+        $this->assertSame(1, $surat2026->no_urut_tahun);
+        $this->assertSame(2026, $surat2026->tahun);
+
+        $payload2027 = $this->validMasukPayload([
+            'pokja_id' => $pokjaId,
+            'tanggal_surat' => '2027-03-01',
+            'tanggal_terima' => '2027-03-02',
+            'no_surat' => 'MASUK/2027/1',
+        ]);
+
+        $response2027 = $this->actingAs($user)
+            ->post(route('agenda-surat.store'), $payload2027);
+
+        $response2027->assertRedirect();
+        $surat2027 = AgendaSurat::query()->where('no_surat', 'MASUK/2027/1')->first();
+        $this->assertNotNull($surat2027);
+        $this->assertSame(1, $surat2027->no_urut_tahun);
+        $this->assertSame(2027, $surat2027->tahun);
+        $this->assertSame($surat2026->pokja_id, $surat2027->pokja_id);
+
+        $this->assertSame(2, AgendaSurat::query()->where('pokja_id', $pokjaId)->count());
+    }
+
+    public function test_nomor_urut_setelah_tahun_baru_kembali_mengikuti_data_tahun_asal(): void
+    {
+        ['kelurahan' => $kelurahan, 'pokja' => $pokjaList] = $this->seedMaster();
+        $pokjaId = $pokjaList->first()->id;
+
+        AgendaSurat::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'jenis' => AgendaSurat::JENIS_MASUK,
+            'pokja_id' => $pokjaId,
+            'no_urut_tahun' => 1,
+            'tanggal_surat' => '2026-06-01',
+            'tanggal_terima' => '2026-06-02',
+            'no_surat' => 'A/2026',
+            'dari' => 'X',
+            'perihal' => 'Tahun 2026',
+        ]);
+
+        AgendaSurat::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'jenis' => AgendaSurat::JENIS_MASUK,
+            'pokja_id' => $pokjaId,
+            'no_urut_tahun' => 1,
+            'tanggal_surat' => '2027-01-15',
+            'tanggal_terima' => '2027-01-16',
+            'no_surat' => 'A/2027',
+            'dari' => 'Y',
+            'perihal' => 'Tahun 2027',
+        ]);
+
+        $this->assertSame(2, AgendaSurat::nomorUrutBerikutnya(
+            $kelurahan->id,
+            AgendaSurat::JENIS_MASUK,
+            $pokjaId,
+            2026
+        ));
+
+        $this->assertSame(2, AgendaSurat::nomorUrutBerikutnya(
+            $kelurahan->id,
+            AgendaSurat::JENIS_MASUK,
+            $pokjaId,
+            2027
+        ));
+    }
+
+    public function test_nomor_urut_masuk_dan_keluar_terpisah_per_tahun(): void
+    {
+        ['kelurahan' => $kelurahan, 'pokja' => $pokjaList] = $this->seedMaster();
+        $pokjaId = $pokjaList->first()->id;
+
+        AgendaSurat::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'jenis' => AgendaSurat::JENIS_MASUK,
+            'pokja_id' => $pokjaId,
+            'no_urut_tahun' => 3,
+            'tanggal_surat' => '2026-04-01',
+            'tanggal_terima' => '2026-04-02',
+            'no_surat' => 'M/3',
+            'dari' => 'A',
+            'perihal' => 'Masuk',
+        ]);
+
+        AgendaSurat::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'jenis' => AgendaSurat::JENIS_KELUAR,
+            'pokja_id' => $pokjaId,
+            'no_urut_tahun' => 2,
+            'tanggal_surat' => '2026-04-10',
+            'no_surat' => 'K/2',
+            'kepada' => 'B',
+            'perihal' => 'Keluar',
+        ]);
+
+        AgendaSurat::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'jenis' => AgendaSurat::JENIS_MASUK,
+            'pokja_id' => $pokjaId,
+            'no_urut_tahun' => 1,
+            'tanggal_surat' => '2027-04-01',
+            'tanggal_terima' => '2027-04-02',
+            'no_surat' => 'M/2027',
+            'dari' => 'C',
+            'perihal' => 'Masuk tahun baru',
+        ]);
+
+        $this->assertSame(4, AgendaSurat::nomorUrutBerikutnya(
+            $kelurahan->id,
+            AgendaSurat::JENIS_MASUK,
+            $pokjaId,
+            2026
+        ));
+
+        $this->assertSame(3, AgendaSurat::nomorUrutBerikutnya(
+            $kelurahan->id,
+            AgendaSurat::JENIS_KELUAR,
+            $pokjaId,
+            2026
+        ));
+
+        $this->assertSame(2, AgendaSurat::nomorUrutBerikutnya(
+            $kelurahan->id,
+            AgendaSurat::JENIS_MASUK,
+            $pokjaId,
+            2027
+        ));
+    }
+
+    public function test_scope_tahun_hanya_mengembalikan_baris_tahun_tersebut(): void
+    {
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+
+        AgendaSurat::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'jenis' => AgendaSurat::JENIS_MASUK,
+            'pokja_id' => null,
+            'no_urut_tahun' => 1,
+            'tanggal_surat' => '2026-01-01',
+            'tanggal_terima' => '2026-01-02',
+            'no_surat' => 'SCOPE/2026',
+            'dari' => 'A',
+            'perihal' => '2026',
+        ]);
+
+        AgendaSurat::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'jenis' => AgendaSurat::JENIS_MASUK,
+            'pokja_id' => null,
+            'no_urut_tahun' => 1,
+            'tanggal_surat' => '2027-01-01',
+            'tanggal_terima' => '2027-01-02',
+            'no_surat' => 'SCOPE/2027',
+            'dari' => 'B',
+            'perihal' => '2027',
+        ]);
+
+        $ids2026 = AgendaSurat::query()->tahun(2026)->pluck('no_surat')->all();
+        $ids2027 = AgendaSurat::query()->tahun(2027)->pluck('no_surat')->all();
+
+        $this->assertSame(['SCOPE/2026'], $ids2026);
+        $this->assertSame(['SCOPE/2027'], $ids2027);
+    }
 }

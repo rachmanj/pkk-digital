@@ -25,6 +25,7 @@ class AgendaSurat extends Model
         'jenis',
         'pokja_id',
         'no_urut_tahun',
+        'tahun',
         'tanggal_surat',
         'tanggal_terima',
         'no_surat',
@@ -42,7 +43,17 @@ class AgendaSurat extends Model
         return [
             'tanggal_surat' => 'date',
             'tanggal_terima' => 'date',
+            'tahun' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (AgendaSurat $agendaSurat): void {
+            if ($agendaSurat->tanggal_surat !== null) {
+                $agendaSurat->tahun = (int) $agendaSurat->tanggal_surat->format('Y');
+            }
+        });
     }
 
     public function kelurahan(): BelongsTo
@@ -84,9 +95,14 @@ class AgendaSurat extends Model
      */
     public function scopeTahun(Builder $query, int $tahun): Builder
     {
-        return $query->whereYear('tanggal_surat', $tahun);
+        return $query->where('tahun', $tahun);
     }
 
+    /**
+     * Untuk buku tingkat kelurahan (pokja_id null), MySQL memperlakukan NULL sebagai nilai
+     * berbeda pada indeks unik sehingga constraint DB tidak mencegah duplikasi nomor;
+     * penomoran di buku itu tetap bergantung pada nomorUrutBerikutnya().
+     */
     public static function nomorUrutBerikutnya(
         int $kelurahanId,
         string $jenis,
@@ -96,7 +112,7 @@ class AgendaSurat extends Model
         $query = static::query()
             ->where('kelurahan_id', $kelurahanId)
             ->where('jenis', $jenis)
-            ->whereYear('tanggal_surat', $tahun);
+            ->where('tahun', $tahun);
 
         if ($pokjaId === null) {
             $query->whereNull('pokja_id');
