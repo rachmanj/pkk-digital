@@ -64,10 +64,11 @@
         </div>
     </div>
 
-    <div class="d-flex flex-wrap gap-2 mb-3">
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
         <a href="{{ route('kegiatan.create') }}" class="btn btn-success btn-sm">
             <i class="bi bi-plus-lg"></i> Tambah Kegiatan
         </a>
+        @include('partials.cetak-toolbar', ['kodeBuku' => 'buku_kegiatan'])
     </div>
 
     <div class="card">

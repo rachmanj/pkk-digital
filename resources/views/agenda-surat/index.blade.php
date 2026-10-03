@@ -71,11 +71,14 @@
         </li>
     </ul>
 
-    <div class="d-flex flex-wrap gap-2 mb-3">
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
         <a href="{{ route('agenda-surat.create', ['jenis' => $jenis, 'buku' => $filters['buku']]) }}"
             class="btn btn-success btn-sm">
             <i class="bi bi-plus-lg"></i> Tambah Surat {{ $jenis === 'masuk' ? 'Masuk' : 'Keluar' }}
         </a>
+        @include('partials.cetak-toolbar', [
+            'kodeBuku' => $jenis === 'masuk' ? 'agenda_surat_masuk' : 'agenda_surat_keluar',
+        ])
     </div>
 
     <div class="card">

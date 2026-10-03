@@ -43,11 +43,12 @@
         </div>
     </div>
 
-    <div class="d-flex flex-wrap gap-2 mb-3">
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
         <a href="{{ route('buku-tamu.create', ['buku' => $filters['buku']]) }}"
             class="btn btn-success btn-sm">
             <i class="bi bi-plus-lg"></i> Tambah Tamu
         </a>
+        @include('partials.cetak-toolbar', ['kodeBuku' => 'buku_tamu'])
     </div>
 
     <div class="card">

@@ -4,6 +4,7 @@ use App\Http\Controllers\AgendaSuratController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BukuKunjunganController;
 use App\Http\Controllers\BukuTamuController;
+use App\Http\Controllers\CetakController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisposisiController;
 use App\Http\Controllers\KegiatanController;
@@ -33,6 +34,10 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('cetak/{buku}', [CetakController::class, 'show'])->name('cetak.show');
+    Route::get('cetak/{buku}/pdf', [CetakController::class, 'pdf'])->name('cetak.pdf');
+    Route::get('export/{buku}', [CetakController::class, 'export'])->name('export.buku');
+
     Route::get('orang/daftar-anggota', [OrangController::class, 'daftarAnggota'])
         ->name('orang.daftar-anggota');
     Route::get('orang/{orang}/foto', [OrangController::class, 'foto'])

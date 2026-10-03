@@ -10,7 +10,10 @@
                 value="{{ $filters['q'] }}">
             <button type="submit" class="btn btn-primary btn-sm">Cari</button>
         </form>
-        <a href="{{ route('orang.index') }}" class="btn btn-outline-secondary btn-sm">Data Anggota (format buku 1)</a>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a href="{{ route('orang.index') }}" class="btn btn-outline-secondary btn-sm">Data Anggota (format buku 1)</a>
+            @include('partials.cetak-toolbar', ['kodeBuku' => 'daftar_anggota_tp_pkk'])
+        </div>
     </div>
 
     <div class="card">

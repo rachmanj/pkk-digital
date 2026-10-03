@@ -55,13 +55,14 @@
         </div>
     </div>
 
-    <div class="d-flex flex-wrap gap-2 mb-3">
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
         <a href="{{ route('orang.create') }}" class="btn btn-success btn-sm">
             <i class="bi bi-person-plus"></i> Tambah Anggota
         </a>
         <a href="{{ route('orang.daftar-anggota') }}" class="btn btn-outline-primary btn-sm">
             Daftar Anggota TP PKK dan Kader
         </a>
+        @include('partials.cetak-toolbar', ['kodeBuku' => 'daftar_anggota'])
     </div>
 
     <div class="card">

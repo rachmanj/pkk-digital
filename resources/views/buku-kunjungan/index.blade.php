@@ -32,10 +32,11 @@
         </div>
     </div>
 
-    <div class="d-flex flex-wrap gap-2 mb-3">
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
         <a href="{{ route('buku-kunjungan.create') }}" class="btn btn-success btn-sm">
             <i class="bi bi-plus-lg"></i> Tambah Kunjungan
         </a>
+        @include('partials.cetak-toolbar', ['kodeBuku' => 'buku_kunjungan'])
     </div>
 
     <div class="card">

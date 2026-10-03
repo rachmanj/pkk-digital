@@ -11,9 +11,19 @@
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
-    <div class="d-flex flex-wrap gap-2 mb-3">
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
         <a href="{{ route('kegiatan.index') }}" class="btn btn-outline-secondary btn-sm">Kembali ke daftar</a>
         <a href="{{ route('kegiatan.edit', $kegiatan) }}" class="btn btn-primary btn-sm">Ubah</a>
+        @include('partials.cetak-toolbar', [
+            'kodeBuku' => 'daftar_hadir',
+            'queryTambahan' => ['kegiatan' => $kegiatan->id],
+            'toolbarLabel' => 'Daftar hadir',
+        ])
+        @include('partials.cetak-toolbar', [
+            'kodeBuku' => 'notulen',
+            'queryTambahan' => ['kegiatan' => $kegiatan->id],
+            'toolbarLabel' => 'Notulen',
+        ])
         <form method="post" action="{{ route('kegiatan.destroy', $kegiatan) }}"
             onsubmit="return confirm('Hapus kegiatan ini?');">
             @csrf
