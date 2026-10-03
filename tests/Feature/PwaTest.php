@@ -53,6 +53,42 @@ class PwaTest extends TestCase
         $this->assertStringContainsString('/offline.html', $body);
         $this->assertStringContainsString('jangan pernah menyimpan', $body);
         $this->assertStringContainsString('butuh login', $body);
+        $this->assertStringContainsString("CACHE_VERSION = 'pkk-v2'", $body);
+        $this->assertStringContainsString("'/build/'", $body);
+        $this->assertStringContainsString("'/icons/'", $body);
+        $this->assertStringContainsString("'/js/'", $body);
+        $this->assertStringContainsString("'/css/'", $body);
+        $this->assertStringContainsString("'/fonts/'", $body);
+        $this->assertStringNotContainsString('request.destination', $body);
+        $this->assertStringNotContainsString('STATIC_DESTINATIONS', $body);
+        $this->assertDoesNotMatchRegularExpression(
+            '/CACHEABLE_PATH_PREFIXES\s*=\s*\[[^\]]*kegiatan-foto/',
+            $body,
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/PRECACHE_URLS\s*=\s*\[[^\]]*kegiatan-foto/',
+            $body,
+        );
+    }
+
+    public function test_nginx_host_example_proxies_all_traffic_without_breaking_pwa_locations(): void
+    {
+        $path = base_path('deploy/production/nginx-host.conf.example');
+        $this->assertFileExists($path);
+
+        $config = file_get_contents($path);
+        $this->assertIsString($config);
+
+        $activeLines = array_filter(
+            explode("\n", $config),
+            static fn (string $line): bool => ! str_starts_with(ltrim($line), '#'),
+        );
+        $activeConfig = implode("\n", $activeLines);
+
+        $this->assertStringNotContainsString('location = /sw.js', $activeConfig);
+        $this->assertStringNotContainsString('location = /manifest.webmanifest', $activeConfig);
+        $this->assertStringContainsString('location / {', $activeConfig);
+        $this->assertStringContainsString('proxy_pass http://127.0.0.1:8080', $activeConfig);
     }
 
     public function test_offline_page_is_available_in_indonesian(): void

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pkk-v1';
+const CACHE_VERSION = 'pkk-v2';
 
 const PRECACHE_URLS = [
     '/offline.html',
@@ -8,14 +8,30 @@ const PRECACHE_URLS = [
     '/manifest.webmanifest',
 ];
 
-const STATIC_DESTINATIONS = ['style', 'script', 'image', 'font'];
+const CACHEABLE_PATH_PREFIXES = ['/build/', '/icons/', '/js/', '/css/', '/fonts/'];
 
 /*
  * Privasi & keamanan: jangan pernah menyimpan di Cache API respons HTML halaman
- * aplikasi (yang butuh login), respons JSON/API, atau rute dinamis lain.
- * Hanya berkas statis umum (CSS/JS/gambar/font) dan daftar precache di atas.
+ * aplikasi (yang butuh login), respons JSON/API, gambar dari rute terautentikasi,
+ * atau jalur dinamis lain. Hanya berkas tampilan statis same-origin yang jalurnya
+ * dimulai dengan salah satu prefix daftar putih di atas, plus daftar precache.
+ * Contoh yang TIDAK disimpan: /kegiatan-foto/{id}/berkas, /orang/.../foto, /dashboard.
  * Mengubah aturan ini bisa mengekspos data pengguna di perangkat bersama.
  */
+
+function isCacheableStaticPath(request) {
+    if (request.method !== 'GET') {
+        return false;
+    }
+
+    const url = new URL(request.url);
+
+    if (url.origin !== self.location.origin) {
+        return false;
+    }
+
+    return CACHEABLE_PATH_PREFIXES.some((prefix) => url.pathname.startsWith(prefix));
+}
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
@@ -48,7 +64,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    if (STATIC_DESTINATIONS.includes(request.destination)) {
+    if (isCacheableStaticPath(request)) {
         event.respondWith(
             caches.open(CACHE_VERSION).then(async (cache) => {
                 const cached = await cache.match(request);
