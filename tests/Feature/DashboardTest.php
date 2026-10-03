@@ -16,6 +16,7 @@ class DashboardTest extends TestCase
         $this->seed(MasterSeeder::class);
 
         $user = User::factory()->create([
+            'username' => 'admin',
             'email' => 'admin@pkk.test',
             'password' => 'password',
         ]);

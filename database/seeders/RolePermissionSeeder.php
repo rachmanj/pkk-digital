@@ -53,30 +53,35 @@ class RolePermissionSeeder extends Seeder
 
         $users = [
             [
+                'username' => 'admin',
                 'email' => 'admin@pkk.test',
                 'name' => 'Administrator',
                 'role' => 'superadmin',
                 'pokja_id' => null,
             ],
             [
+                'username' => 'sekretaris',
                 'email' => 'sekretaris@pkk.test',
                 'name' => 'Sekretaris PKK',
                 'role' => 'sekretaris',
                 'pokja_id' => null,
             ],
             [
+                'username' => 'ketua',
                 'email' => 'ketua@pkk.test',
                 'name' => 'Ketua TP PKK',
                 'role' => 'ketua',
                 'pokja_id' => null,
             ],
             [
+                'username' => 'ketua-pokja',
                 'email' => 'ketua-pokja@pkk.test',
                 'name' => 'Ketua Pokja I',
                 'role' => 'ketua_pokja',
                 'pokja_id' => $pokjaI?->id,
             ],
             [
+                'username' => 'kader',
                 'email' => 'kader@pkk.test',
                 'name' => 'Kader PKK',
                 'role' => 'kader',
@@ -86,8 +91,9 @@ class RolePermissionSeeder extends Seeder
 
         foreach ($users as $definition) {
             $user = User::updateOrCreate(
-                ['email' => $definition['email']],
+                ['username' => $definition['username']],
                 [
+                    'email' => $definition['email'],
                     'name' => $definition['name'],
                     'password' => $password,
                     'pokja_id' => $definition['pokja_id'],

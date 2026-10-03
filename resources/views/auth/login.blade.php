@@ -14,17 +14,17 @@
     <form action="{{ $loginUrl }}" method="post">
         @csrf
 
-        <label for="email" class="visually-hidden">Email</label>
+        <label for="username" class="visually-hidden">Nama pengguna</label>
         <div class="input-group mb-3">
-            <input type="email" name="email" id="email"
-                class="form-control @error('email') is-invalid @enderror"
-                value="{{ old('email') }}" placeholder="Email" autofocus>
+            <input type="text" name="username" id="username"
+                class="form-control @error('username') is-invalid @enderror"
+                value="{{ old('username') }}" placeholder="Nama pengguna" autocomplete="username" autofocus>
 
             <div class="input-group-text">
-                <span class="bi bi-envelope {{ config('adminlte.classes_auth_icon', '') }}"></span>
+                <span class="bi bi-person-fill {{ config('adminlte.classes_auth_icon', '') }}"></span>
             </div>
 
-            @error('email')
+            @error('username')
                 <span class="invalid-feedback" role="alert">
                     <strong>{{ $message }}</strong>
                 </span>

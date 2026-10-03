@@ -39,6 +39,7 @@ class UserController extends Controller
 
         $user = User::query()->create([
             'name' => $validated['name'],
+            'username' => $validated['username'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'pokja_id' => $validated['pokja_id'] ?? null,
@@ -65,6 +66,7 @@ class UserController extends Controller
 
         $pengguna->fill([
             'name' => $validated['name'],
+            'username' => $validated['username'],
             'email' => $validated['email'],
             'pokja_id' => $validated['pokja_id'] ?? null,
         ]);
@@ -85,13 +87,29 @@ class UserController extends Controller
      */
     private function validateUser(Request $request, ?User $existing = null): array
     {
+        if (is_string($request->input('username'))) {
+            $request->merge([
+                'username' => strtolower(trim($request->input('username'))),
+            ]);
+        }
+
+        $usernameRule = Rule::unique('users', 'username');
         $emailRule = Rule::unique('users', 'email');
         if ($existing !== null) {
+            $usernameRule = $usernameRule->ignore($existing->id);
             $emailRule = $emailRule->ignore($existing->id);
         }
 
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'username' => [
+                'required',
+                'string',
+                'min:3',
+                'max:255',
+                'regex:/^[a-z0-9._-]+$/',
+                $usernameRule,
+            ],
             'email' => ['required', 'email', 'max:255', $emailRule],
             'password' => [$existing === null ? 'required' : 'nullable', 'string', 'min:8'],
             'role' => ['required', Rule::in($this->roleNames())],

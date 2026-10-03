@@ -17,7 +17,7 @@ abstract class TestCase extends BaseTestCase
     {
         $this->seedRoles();
 
-        return User::query()->where('email', 'admin@pkk.test')->firstOrFail();
+        return User::query()->where('username', 'admin')->firstOrFail();
     }
 
     protected function userForRole(string $role, array $attributes = []): User
