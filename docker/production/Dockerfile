@@ -11,8 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
     libicu-dev \
+    libonig-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j"$(nproc)" \
+    && docker-php-ext-install \
         pdo_mysql \
         mysqli \
         mbstring \
@@ -20,7 +23,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gd \
         intl \
         bcmath \
-        opcache \
         exif \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
