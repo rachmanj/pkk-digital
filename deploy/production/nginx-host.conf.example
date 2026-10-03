@@ -1,0 +1,21 @@
+# Contoh vhost nginx di VM (bukan di container).
+# Pasang: sudo cp nginx-host.conf.example /etc/nginx/sites-available/pkk-digital
+#         sudo ln -sf /etc/nginx/sites-available/pkk-digital /etc/nginx/sites-enabled/pkk-digital
+#         sudo nginx -t && sudo systemctl reload nginx
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name 103.59.95.229;
+
+    client_max_body_size 8M;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

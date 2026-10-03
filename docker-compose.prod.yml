@@ -1,0 +1,41 @@
+services:
+  app:
+    image: pkk-digital-app:latest
+    build:
+      context: .
+      dockerfile: docker/production/Dockerfile
+    ports:
+      - "127.0.0.1:8080:80"
+    env_file:
+      - .env.production
+    volumes:
+      - app_storage:/var/www/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1/login"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  mysql:
+    image: mysql:8.0
+    env_file:
+      - .env.production
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/production/mysql.cnf:/etc/mysql/conf.d/pkk-custom.cnf:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  app_storage:
+  mysql_data:

@@ -1,0 +1,10 @@
+[mysqld]
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+innodb_buffer_pool_size=256M
+innodb_log_buffer_size=8M
+max_connections=50
+performance_schema=OFF
+
+[client]
+default-character-set=utf8mb4
