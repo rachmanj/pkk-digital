@@ -25,6 +25,13 @@ class ConfigureAdminLteMenu
             'icon' => 'bi bi-person-lines-fill',
             'active' => ['orang*'],
         ]);
+
+        $event->menu->add([
+            'text' => 'Agenda Surat',
+            'url' => 'agenda-surat',
+            'icon' => 'bi bi-journal-text',
+            'active' => ['agenda-surat*'],
+        ]);
     }
 
     private function resetMenu(Builder $builder): void

@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\AgendaSuratController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DisposisiController;
 use App\Http\Controllers\OrangController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -33,4 +35,12 @@ Route::middleware('auth')->group(function () {
     Route::get('orang/{orang}/foto', [OrangController::class, 'foto'])
         ->name('orang.foto');
     Route::resource('orang', OrangController::class);
+
+    Route::get('agenda-surat/{agenda_surat}/berkas', [AgendaSuratController::class, 'berkas'])
+        ->name('agenda-surat.berkas');
+    Route::post('agenda-surat/{agenda_surat}/disposisi', [DisposisiController::class, 'store'])
+        ->name('agenda-surat.disposisi.store');
+    Route::put('disposisi/{disposisi}', [DisposisiController::class, 'update'])
+        ->name('disposisi.update');
+    Route::resource('agenda-surat', AgendaSuratController::class);
 });
