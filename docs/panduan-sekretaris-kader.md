@@ -52,6 +52,17 @@ Aturannya: sandi baru minimal 8 karakter, harus sama dengan kolom ulangannya, da
 
 Bila ada pengurus yang lupa sandinya, admin aplikasi bisa mengatur ulang dari menu **Pengguna** — buka pengguna yang bersangkutan, isi kolom sandi pada halaman edit, lalu simpan.
 
+### 2.2 Pasang aplikasi di HP atau komputer
+
+Aplikasi ini bisa dipasang seperti aplikasi biasa, sehingga ikonnya muncul di layar utama dan terbuka tanpa bilah alamat:
+
+1. Buka **https://pkk-digital.sbs**.
+2. Bila muncul tombol **"Pasang aplikasi"** di bagian atas halaman, klik tombol itu lalu setujui saat peramban bertanya.
+3. Di **iPhone (Safari)**: tekan tombol **Bagikan**, lalu pilih **"Tambahkan ke Layar Utama"**.
+4. Ikon **"Buku PKK Digital"** akan muncul di layar utama. Buka lewat ikon itu untuk masuk seperti biasa.
+
+Bila koneksi internet terputus, aplikasi menampilkan halaman **"Tidak ada koneksi internet"** — data yang belum disimpan tidak terkirim, jadi sambungkan kembali jaringan lalu tekan **"Coba lagi"** dan ulangi penyimpanan terakhir.
+
 ## 3. Menu di sisi kiri dan tugasnya
 
 | Menu di sisi kiri | Isinya | Sekretaris | Kader |
@@ -244,6 +255,7 @@ Kertas cetak memakai ukuran **A4**, dan buku yang kolomnya banyak otomatis dicet
 | Muncul pesan 403 saat membuka menu | Peran akun tidak berhak atas menu itu | Minta sekretaris atau admin mengerjakan, atau gunakan akun yang sesuai |
 | Tidak bisa masuk, kata sandi ditolak | Salah ketik, atau terlalu banyak percobaan | Periksa penulisan nama pengguna dan sandi, tunggu satu menit, lalu coba lagi |
 | Lupa kata sandi | Kata sandi bersifat pribadi | Ganti sendiri lewat menu "Ubah Sandi"; bila benar-benar lupa, minta admin mengatur ulang dari menu Pengguna |
+| Muncul halaman "Tidak ada koneksi internet" | Jaringan terputus saat mengirim data | Sambungkan kembali jaringan, tekan "Coba lagi", lalu ulangi penyimpanan terakhir |
 | Kegiatan tidak muncul di daftar | Penyaring tahun, bulan, atau Pokja masih terpasang | Klik **Reset** untuk membersihkan penyaring |
 | Peserta tidak tercetak di daftar hadir | Peserta belum dicentang pada kegiatan itu | Buka kegiatan, centang peserta yang hadir, lalu simpan |
 | Angka di laporan masih nol | Bagian itu memang belum diisi | Isi datanya lebih dulu, laporan akan mengikuti |
