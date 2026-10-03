@@ -39,6 +39,19 @@ Setiap pengurus memakai nama pengguna sendiri agar catatan siapa mengisi apa bis
 
 Catatan keamanan: bila salah kata sandi **5 kali dalam satu menit**, aplikasi menahan percobaan berikutnya sekitar satu menit. Tunggu sebentar lalu coba lagi dengan hati-hati.
 
+### 2.1 Ganti kata sandi sendiri
+
+Setiap pengguna kini bisa mengganti kata sandinya sendiri — tidak perlu menunggu admin:
+
+1. Klik nama Anda di **pojok kanan atas**, lalu pilih menu **"Ubah Sandi"** (tautan yang sama juga tersedia di menu sisi kiri).
+2. Isi **"Kata sandi saat ini"** dengan sandi yang sedang dipakai.
+3. Isi **"Kata sandi baru"** (minimal 8 karakter) dan ulangi pada kolom ulangannya.
+4. Klik **Simpan**.
+
+Aturannya: sandi baru minimal 8 karakter, harus sama dengan kolom ulangannya, dan tidak boleh sama dengan sandi lama. Bila kata sandi saat ini salah, aplikasi menolak dan sandi lama Anda tetap berlaku. Setelah berhasil, Anda **tetap masuk** dan bisa langsung bekerja seperti biasa.
+
+Bila ada pengurus yang lupa sandinya, admin aplikasi bisa mengatur ulang dari menu **Pengguna** — buka pengguna yang bersangkutan, isi kolom sandi pada halaman edit, lalu simpan.
+
 ## 3. Menu di sisi kiri dan tugasnya
 
 | Menu di sisi kiri | Isinya | Sekretaris | Kader |
@@ -230,7 +243,7 @@ Kertas cetak memakai ukuran **A4**, dan buku yang kolomnya banyak otomatis dicet
 |---|---|---|
 | Muncul pesan 403 saat membuka menu | Peran akun tidak berhak atas menu itu | Minta sekretaris atau admin mengerjakan, atau gunakan akun yang sesuai |
 | Tidak bisa masuk, kata sandi ditolak | Salah ketik, atau terlalu banyak percobaan | Periksa penulisan nama pengguna dan sandi, tunggu satu menit, lalu coba lagi |
-| Lupa kata sandi | Kata sandi bersifat pribadi | Hubungi pengelola aplikasi untuk dibuatkan sandi baru |
+| Lupa kata sandi | Kata sandi bersifat pribadi | Ganti sendiri lewat menu "Ubah Sandi"; bila benar-benar lupa, minta admin mengatur ulang dari menu Pengguna |
 | Kegiatan tidak muncul di daftar | Penyaring tahun, bulan, atau Pokja masih terpasang | Klik **Reset** untuk membersihkan penyaring |
 | Peserta tidak tercetak di daftar hadir | Peserta belum dicentang pada kegiatan itu | Buka kegiatan, centang peserta yang hadir, lalu simpan |
 | Angka di laporan masih nol | Bagian itu memang belum diisi | Isi datanya lebih dulu, laporan akan mengikuti |
