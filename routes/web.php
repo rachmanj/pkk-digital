@@ -4,6 +4,7 @@ use App\Http\Controllers\AgendaSuratController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisposisiController;
+use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\OrangController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -43,4 +44,14 @@ Route::middleware('auth')->group(function () {
     Route::put('disposisi/{disposisi}', [DisposisiController::class, 'update'])
         ->name('disposisi.update');
     Route::resource('agenda-surat', AgendaSuratController::class);
+
+    Route::get('kegiatan/cari-orang', [KegiatanController::class, 'cariOrang'])
+        ->name('kegiatan.cari-orang');
+    Route::post('kegiatan/{kegiatan}/presensi', [KegiatanController::class, 'simpanPresensi'])
+        ->name('kegiatan.presensi.store');
+    Route::patch('kegiatan/{kegiatan}/presensi/{presensi}', [KegiatanController::class, 'ubahPresensi'])
+        ->name('kegiatan.presensi.update');
+    Route::post('kegiatan/{kegiatan}/notulen', [KegiatanController::class, 'simpanNotulen'])
+        ->name('kegiatan.notulen.store');
+    Route::resource('kegiatan', KegiatanController::class);
 });

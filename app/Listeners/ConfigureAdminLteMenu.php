@@ -32,6 +32,13 @@ class ConfigureAdminLteMenu
             'icon' => 'bi bi-journal-text',
             'active' => ['agenda-surat*'],
         ]);
+
+        $event->menu->add([
+            'text' => 'Kegiatan',
+            'url' => 'kegiatan',
+            'icon' => 'bi bi-calendar-event',
+            'active' => ['kegiatan*'],
+        ]);
     }
 
     private function resetMenu(Builder $builder): void
