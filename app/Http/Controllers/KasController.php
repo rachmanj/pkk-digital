@@ -186,6 +186,13 @@ class KasController extends Controller
         $buku = $kasTutupBuku->pokja_id ? 'pokja-'.$kasTutupBuku->pokja_id : 'kelurahan';
         $tahun = $kasTutupBuku->tahun;
 
+        if ($kasTutupBuku->pokja_id !== null) {
+            return redirect()->route('kas.index', [
+                'buku' => $buku,
+                'tahun' => $tahun,
+            ])->with('error', 'Tutup buku hanya berlaku untuk Buku Tabungan/Kas Umum tingkat kelurahan.');
+        }
+
         $kasTutupBuku->delete();
 
         return redirect()->route('kas.index', [

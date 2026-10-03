@@ -401,6 +401,29 @@ class KasTest extends TestCase
         $this->assertDatabaseMissing('kas_tutup_buku', ['id' => $tutup->id]);
     }
 
+    public function test_hapus_tutup_buku_milik_pokja_ditolak_dan_baris_tetap_ada(): void
+    {
+        ['kelurahan' => $kelurahan, 'pokjaI' => $pokjaI] = $this->seedMaster();
+        $bendahara = $this->userForRole('bendahara', ['email' => 'bend-del-pokja@pkk.test']);
+
+        $tutup = KasTutupBuku::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => $pokjaI->id,
+            'tahun' => 2026,
+            'tanggal_tutup' => '2026-01-01',
+            'sisa_bank' => 0,
+            'sisa_tunai' => 0,
+            'total' => 0,
+        ]);
+
+        $this->actingAs($bendahara)
+            ->delete(route('kas.tutup-buku.destroy', $tutup))
+            ->assertRedirect(route('kas.index', ['buku' => 'pokja-'.$pokjaI->id, 'tahun' => 2026]))
+            ->assertSessionHas('error', 'Tutup buku hanya berlaku untuk Buku Tabungan/Kas Umum tingkat kelurahan.');
+
+        $this->assertDatabaseHas('kas_tutup_buku', ['id' => $tutup->id]);
+    }
+
     public function test_kader_ditolak_403_pada_semua_rute_kas(): void
     {
         $this->seedMaster();

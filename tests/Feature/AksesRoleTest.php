@@ -177,9 +177,10 @@ class AksesRoleTest extends TestCase
         $this->seed(RolePermissionSeeder::class);
 
         $this->assertSame(6, Role::query()->count());
-        $this->assertSame(5, User::query()->where('email', 'like', '%@pkk.test')->count());
+        $this->assertSame(6, User::query()->where('email', 'like', '%@pkk.test')->count());
         $this->assertDatabaseHas('users', ['username' => 'kader', 'email' => 'kader@pkk.test']);
         $this->assertDatabaseHas('users', ['username' => 'admin', 'email' => 'admin@pkk.test']);
+        $this->assertDatabaseHas('users', ['username' => 'bendahara', 'email' => 'bendahara@pkk.test']);
     }
 
     public function test_update_orang_mencatat_activity_log_dengan_nama_log_orang(): void

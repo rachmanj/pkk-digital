@@ -79,6 +79,13 @@ class RolePermissionSeeder extends Seeder
                 'pokja_id' => null,
             ],
             [
+                'username' => 'bendahara',
+                'email' => 'bendahara@pkk.test',
+                'name' => 'Bendahara TP PKK',
+                'role' => 'bendahara',
+                'pokja_id' => null,
+            ],
+            [
                 'username' => 'ketua',
                 'email' => 'ketua@pkk.test',
                 'name' => 'Ketua TP PKK',
@@ -102,15 +109,17 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($users as $definition) {
-            $user = User::updateOrCreate(
-                ['username' => $definition['username']],
-                [
+            $user = User::query()->where('username', $definition['username'])->first();
+
+            if ($user === null) {
+                $user = User::query()->create([
+                    'username' => $definition['username'],
                     'email' => $definition['email'],
                     'name' => $definition['name'],
                     'password' => $password,
                     'pokja_id' => $definition['pokja_id'],
-                ]
-            );
+                ]);
+            }
 
             $user->syncRoles([$definition['role']]);
         }
