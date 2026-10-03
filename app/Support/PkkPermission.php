@@ -24,6 +24,10 @@ final class PkkPermission
 
     public const LIHAT_AUDIT = 'lihat_audit';
 
+    public const KELOLA_KAS = 'kelola_kas';
+
+    public const LIHAT_KAS = 'lihat_kas';
+
     /**
      * @return list<string>
      */
@@ -40,6 +44,8 @@ final class PkkPermission
             self::LIHAT_BUKU,
             self::VERIFIKASI_BUKU,
             self::LIHAT_AUDIT,
+            self::KELOLA_KAS,
+            self::LIHAT_KAS,
         ];
     }
 

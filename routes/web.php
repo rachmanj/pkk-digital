@@ -8,6 +8,7 @@ use App\Http\Controllers\BukuTamuController;
 use App\Http\Controllers\CetakController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisposisiController;
+use App\Http\Controllers\KasController;
 use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\KegiatanFotoController;
 use App\Http\Controllers\OrangController;
@@ -47,6 +48,7 @@ Route::middleware('auth')->group(function () {
     );
     $lihatTamu = PkkPermission::middleware(PkkPermission::LIHAT_BUKU, PkkPermission::KELOLA_BUKU_TAMU);
     $lihatKunjungan = PkkPermission::middleware(PkkPermission::LIHAT_BUKU, PkkPermission::KELOLA_BUKU_KUNJUNGAN);
+    $lihatKas = PkkPermission::middleware(PkkPermission::LIHAT_KAS, PkkPermission::KELOLA_KAS);
 
     Route::get('cetak/{buku}', [CetakController::class, 'show'])
         ->middleware(PkkPermission::middleware(PkkPermission::LIHAT_BUKU, PkkPermission::VERIFIKASI_BUKU))
@@ -106,6 +108,15 @@ Route::middleware('auth')->group(function () {
     Route::get('buku-kunjungan/{buku_kunjungan}/edit', [BukuKunjunganController::class, 'edit'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_BUKU_KUNJUNGAN))->name('buku-kunjungan.edit');
     Route::put('buku-kunjungan/{buku_kunjungan}', [BukuKunjunganController::class, 'update'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_BUKU_KUNJUNGAN))->name('buku-kunjungan.update');
     Route::delete('buku-kunjungan/{buku_kunjungan}', [BukuKunjunganController::class, 'destroy'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_BUKU_KUNJUNGAN))->name('buku-kunjungan.destroy');
+
+    Route::get('kas', [KasController::class, 'index'])->middleware($lihatKas)->name('kas.index');
+    Route::get('kas/create', [KasController::class, 'create'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_KAS))->name('kas.create');
+    Route::post('kas', [KasController::class, 'store'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_KAS))->name('kas.store');
+    Route::post('kas/saldo-awal', [KasController::class, 'storeSaldoAwal'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_KAS))->name('kas.saldo-awal.store');
+    Route::get('kas/{kasTransaksi}', [KasController::class, 'show'])->middleware($lihatKas)->name('kas.show');
+    Route::get('kas/{kasTransaksi}/edit', [KasController::class, 'edit'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_KAS))->name('kas.edit');
+    Route::put('kas/{kasTransaksi}', [KasController::class, 'update'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_KAS))->name('kas.update');
+    Route::delete('kas/{kasTransaksi}', [KasController::class, 'destroy'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_KAS))->name('kas.destroy');
 
     Route::get('kegiatan/cari-orang', [KegiatanController::class, 'cariOrang'])
         ->middleware($lihatKegiatan)

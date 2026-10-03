@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\AgendaSurat;
 use App\Models\Keanggotaan;
-use App\Models\Kelurahan;
 use App\Models\Kegiatan;
+use App\Models\Kelurahan;
 use App\Models\Orang;
 use App\Models\Pokja;
 use App\Models\User;
@@ -176,7 +176,7 @@ class AksesRoleTest extends TestCase
         $this->seed(RolePermissionSeeder::class);
         $this->seed(RolePermissionSeeder::class);
 
-        $this->assertSame(5, Role::query()->count());
+        $this->assertSame(6, Role::query()->count());
         $this->assertSame(5, User::query()->where('email', 'like', '%@pkk.test')->count());
         $this->assertDatabaseHas('users', ['username' => 'kader', 'email' => 'kader@pkk.test']);
         $this->assertDatabaseHas('users', ['username' => 'admin', 'email' => 'admin@pkk.test']);

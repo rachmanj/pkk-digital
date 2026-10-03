@@ -68,6 +68,15 @@ class ConfigureAdminLteMenu
             ]);
         }
 
+        if ($this->can($user, PkkPermission::LIHAT_KAS, PkkPermission::KELOLA_KAS)) {
+            $event->menu->add([
+                'text' => 'Kas dan Tabungan',
+                'url' => 'kas',
+                'icon' => 'bi bi-cash-stack',
+                'active' => ['kas*'],
+            ]);
+        }
+
         if ($user instanceof User && $user->can(PkkPermission::KELOLA_PENGGUNA)) {
             $event->menu->add([
                 'text' => 'Pengguna',
