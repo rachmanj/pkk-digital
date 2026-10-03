@@ -1,11 +1,19 @@
 @extends('cetak.layout')
 
 @section('isi_cetak')
-    <table class="buku">
+    @php
+        $lebarKolom = $tampilan['lebar_kolom'] ?? [];
+    @endphp
+    <table class="buku {{ $tampilan['kelas_orientasi'] ?? '' }}">
+        <colgroup>
+            @foreach ($dataset['kolom'] as $kolom)
+                <col style="width: {{ $lebarKolom[$kolom['key']] ?? 'auto' }}">
+            @endforeach
+        </colgroup>
         <thead>
             <tr>
                 @foreach ($dataset['kolom'] as $kolom)
-                    <th>{{ $kolom['label'] }}</th>
+                    <th scope="col">{{ $kolom['label'] }}</th>
                 @endforeach
             </tr>
         </thead>

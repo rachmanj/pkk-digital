@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Concerns\HandlesPokjaScope;
 use App\Exports\AgendaSuratKeluarExport;
 use App\Exports\AgendaSuratMasukExport;
 use App\Exports\BukuKegiatanExport;
@@ -12,7 +11,9 @@ use App\Exports\DaftarAnggotaExport;
 use App\Exports\DaftarAnggotaTpPkkExport;
 use App\Exports\DaftarHadirExport;
 use App\Exports\NotulenExport;
+use App\Http\Controllers\Concerns\HandlesPokjaScope;
 use App\Services\BukuCetakService;
+use App\Services\BukuCetakTampilan;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -37,7 +38,10 @@ class CetakController extends Controller
         'buku_kunjungan' => BukuKunjunganExport::class,
     ];
 
-    public function __construct(private BukuCetakService $bukuCetakService) {}
+    public function __construct(
+        private BukuCetakService $bukuCetakService,
+        private BukuCetakTampilan $bukuCetakTampilan,
+    ) {}
 
     public function show(Request $request, string $buku): View
     {
@@ -50,6 +54,7 @@ class CetakController extends Controller
         return view($view, [
             'dataset' => $dataset,
             'mode' => 'screen',
+            'tampilan' => $this->bukuCetakTampilan->untukKode($buku),
         ]);
     }
 
@@ -61,15 +66,18 @@ class CetakController extends Controller
             ? 'cetak.notulen'
             : 'cetak.tabel';
 
+        $tampilan = $this->bukuCetakTampilan->untukKode($buku);
+
         $html = view($view, [
             'dataset' => $dataset,
             'mode' => 'pdf',
+            'tampilan' => $tampilan,
         ])->render();
 
         $filename = $this->namaBerkas($buku, $dataset['tahun'], 'pdf');
 
         return Pdf::loadHTML($html)
-            ->setPaper('folio', 'portrait')
+            ->setPaper($tampilan['dompdf_kertas'], $tampilan['orientasi'])
             ->download($filename);
     }
 

@@ -1,51 +1,69 @@
+@php
+    $tampilan = $tampilan ?? app(\App\Services\BukuCetakTampilan::class)->untukKode($dataset['kode']);
+    $orientasi = $tampilan['orientasi'];
+    $kelasOrientasi = $tampilan['kelas_orientasi'];
+    $lebarMm = \App\Services\BukuCetakTampilan::KERTAS_LEBAR_MM;
+    $tinggiMm = \App\Services\BukuCetakTampilan::KERTAS_TINGGI_MM;
+    $marginV = \App\Services\BukuCetakTampilan::MARGIN_ATAS_BAWAH_MM;
+    $marginH = \App\Services\BukuCetakTampilan::MARGIN_KIRI_KANAN_MM;
+    $ukuranKertas = $orientasi === 'landscape'
+        ? "{$tinggiMm}mm {$lebarMm}mm"
+        : "{$lebarMm}mm {$tinggiMm}mm";
+@endphp
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="{{ $kelasOrientasi }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $dataset['judul'] }} — Cetak</title>
     <style>
         @page {
-            size: 210mm 330mm;
-            margin: 12mm 10mm;
+            size: {{ $ukuranKertas }};
+            margin: {{ $marginV }}mm {{ $marginH }}mm;
         }
         @media print {
             .no-print { display: none !important; }
-            body { margin: 0; }
+            body { margin: 0; padding: 0; }
         }
         body {
             font-family: "Times New Roman", Times, serif;
-            font-size: 10pt;
-            line-height: 1.25;
+            font-size: 9pt;
+            line-height: 1.2;
             color: #000;
             margin: 0;
-            padding: 12px;
+            padding: 8px;
+        }
+        body.cetak-landscape table.buku th {
+            font-size: 6.5pt;
+        }
+        body.cetak-landscape table.buku td {
+            font-size: 7.5pt;
         }
         .kop {
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .kop h1 {
-            font-size: 11pt;
+            font-size: 10pt;
             font-weight: bold;
-            margin: 0 0 4px;
+            margin: 0 0 3px;
             text-transform: uppercase;
         }
         .kop p {
             margin: 0;
-            font-size: 9pt;
+            font-size: 8pt;
         }
         .judul-buku {
             text-align: center;
             font-weight: bold;
-            font-size: 11pt;
-            margin: 8px 0 4px;
+            font-size: 10pt;
+            margin: 6px 0 3px;
             text-decoration: underline;
         }
         .tahun {
             text-align: center;
-            margin-bottom: 10px;
-            font-size: 10pt;
+            margin-bottom: 8px;
+            font-size: 9pt;
         }
         table.buku {
             width: 100%;
@@ -55,24 +73,27 @@
         table.buku th,
         table.buku td {
             border: 1px solid #333;
-            padding: 3px 4px;
+            padding: 2px 3px;
             vertical-align: top;
-            word-wrap: break-word;
+            word-break: normal;
+            overflow-wrap: normal;
+            hyphens: none;
         }
         table.buku th {
-            font-size: 8pt;
+            font-size: 7pt;
             text-align: center;
             font-weight: bold;
         }
         table.buku td {
-            font-size: 9pt;
+            font-size: 8pt;
+            overflow-wrap: break-word;
         }
         td.kolom-ttd {
-            min-height: 28px;
-            height: 28px;
+            min-height: 24px;
+            height: 24px;
         }
         .blok-ttd {
-            margin-top: 24px;
+            margin-top: 20px;
             display: flex;
             justify-content: space-around;
             gap: 16px;
@@ -80,10 +101,10 @@
         .blok-ttd .kolom {
             text-align: center;
             width: 45%;
-            font-size: 10pt;
+            font-size: 9pt;
         }
         .blok-ttd .garis {
-            margin: 48px auto 4px;
+            margin: 40px auto 4px;
             border-bottom: 1px solid #000;
             width: 70%;
             min-height: 1px;
@@ -107,7 +128,7 @@
         }
     </style>
 </head>
-<body>
+<body class="{{ $kelasOrientasi }}">
     @if (($mode ?? 'screen') === 'screen')
         <div class="no-print">
             <button type="button" onclick="window.print()">Cetak</button>

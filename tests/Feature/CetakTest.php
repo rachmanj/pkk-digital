@@ -6,7 +6,7 @@ use App\Models\Kegiatan;
 use App\Models\Kelurahan;
 use App\Models\Orang;
 use App\Models\Presensi;
-use App\Models\User;
+use App\Services\BukuCetakTampilan;
 use Database\Seeders\MasterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -175,5 +175,112 @@ class CetakTest extends TestCase
         $this->get(route('cetak.show', ['buku' => 'buku_tamu']))->assertRedirect(route('login'));
         $this->get(route('cetak.pdf', ['buku' => 'buku_tamu']))->assertRedirect(route('login'));
         $this->get(route('export.buku', ['buku' => 'buku_tamu']))->assertRedirect(route('login'));
+    }
+
+    public function test_buku_lebih_dari_enam_kolom_memakai_kelas_landscape_pada_cetak(): void
+    {
+        $user = $this->actingAdmin();
+        $this->seedMaster();
+        $tampilan = app(BukuCetakTampilan::class);
+
+        foreach (array_keys(config('buku')) as $kode) {
+            $config = config('buku.'.$kode);
+            if ($config['tipe'] !== 'tabel' || count($config['kolom']) <= 6) {
+                continue;
+            }
+
+            $response = $this->actingAs($user)->get(route('cetak.show', [
+                'buku' => $kode,
+                'tahun' => 2026,
+            ]));
+
+            $response->assertOk();
+            $response->assertSee('cetak-landscape', false);
+            $this->assertTrue($tampilan->landscapeUntukKode($kode));
+        }
+    }
+
+    public function test_buku_enam_kolom_atau_kurang_memakai_kelas_portrait_pada_cetak(): void
+    {
+        $user = $this->actingAdmin();
+        $this->seedMaster();
+        $tampilan = app(BukuCetakTampilan::class);
+
+        foreach (array_keys(config('buku')) as $kode) {
+            $config = config('buku.'.$kode);
+            if ($config['tipe'] !== 'tabel' || count($config['kolom']) > 6) {
+                continue;
+            }
+
+            $response = $this->actingAs($user)->get(route('cetak.show', [
+                'buku' => $kode,
+                'tahun' => 2026,
+            ]));
+
+            $response->assertOk();
+            $response->assertSee('cetak-portrait', false);
+            $this->assertFalse($tampilan->landscapeUntukKode($kode));
+        }
+    }
+
+    public function test_semua_label_kolom_tabel_muncul_utuh_pada_halaman_cetak(): void
+    {
+        $user = $this->actingAdmin();
+        $this->seedMaster();
+
+        foreach (array_keys(config('buku')) as $kode) {
+            $config = config('buku.'.$kode);
+            if ($config['tipe'] !== 'tabel') {
+                continue;
+            }
+
+            $params = ['tahun' => 2026];
+            if ($kode === 'daftar_hadir') {
+                $kelurahan = Kelurahan::query()->where('kode', 'GSI')->firstOrFail();
+                $kegiatan = Kegiatan::query()->create([
+                    'kelurahan_id' => $kelurahan->id,
+                    'nama' => 'Kegiatan Label Uji',
+                    'jenis' => Kegiatan::JENIS_RAPAT,
+                    'tanggal' => '2026-06-01',
+                    'tempat' => 'Aula',
+                    'acara' => 'Uji label',
+                ]);
+                $params['kegiatan'] = $kegiatan->id;
+            }
+
+            $response = $this->actingAs($user)->get(route('cetak.show', ['buku' => $kode] + $params));
+            $response->assertOk();
+            $content = $response->getContent();
+
+            foreach ($config['kolom'] as $kolom) {
+                $label = $kolom['label'];
+                $this->assertStringContainsString(
+                    '>'.$label.'</th>',
+                    $content,
+                    "Label kolom \"{$label}\" tidak muncul utuh sebagai header pada buku {$kode}."
+                );
+            }
+        }
+    }
+
+    public function test_jumlah_header_tabel_sesuai_jumlah_kolom_konfigurasi(): void
+    {
+        $user = $this->actingAdmin();
+        $this->seedMaster();
+
+        $kode = 'daftar_anggota';
+        $jumlahKolom = count(config('buku.'.$kode)['kolom']);
+
+        $response = $this->actingAs($user)->get(route('cetak.show', [
+            'buku' => $kode,
+            'tahun' => 2026,
+        ]));
+
+        $response->assertOk();
+        $content = $response->getContent();
+        preg_match_all('/<table[^>]*class="[^"]*buku[^"]*"[^>]*>.*?<thead>.*?<\/thead>/s', $content, $tabel);
+        $this->assertNotEmpty($tabel[0]);
+        preg_match_all('/<th[^>]*scope="col"[^>]*>/', $content, $header);
+        $this->assertCount($jumlahKolom, $header[0], 'Jumlah header tabel cetak tidak sama dengan jumlah kolom konfigurasi.');
     }
 }
