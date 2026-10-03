@@ -130,6 +130,21 @@ class ConfigureAdminLteMenu
                 'active' => ['audit*'],
             ]);
         }
+
+        if ($user instanceof User) {
+            $event->menu->add([
+                'text' => 'Ubah Sandi',
+                'url' => 'ubah-sandi',
+                'icon' => 'bi bi-key',
+                'topnav_user' => true,
+            ]);
+            $event->menu->add([
+                'text' => 'Ubah Sandi',
+                'url' => 'ubah-sandi',
+                'icon' => 'bi bi-key',
+                'active' => ['ubah-sandi'],
+            ]);
+        }
     }
 
     private function can(?User $user, string ...$permissions): bool

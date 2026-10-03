@@ -17,6 +17,7 @@ use App\Http\Controllers\LaporanKotaController;
 use App\Http\Controllers\OrangController;
 use App\Http\Controllers\ProgramKerjaController;
 use App\Http\Controllers\StrukturController;
+use App\Http\Controllers\UbahSandiController;
 use App\Http\Controllers\UserController;
 use App\Support\PkkPermission;
 use Illuminate\Support\Facades\Auth;
@@ -44,6 +45,9 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('ubah-sandi', [UbahSandiController::class, 'show'])->name('ubah-sandi.show');
+    Route::post('ubah-sandi', [UbahSandiController::class, 'update'])->name('ubah-sandi.update');
+
     $lihatAnggota = PkkPermission::middleware(PkkPermission::LIHAT_BUKU, PkkPermission::KELOLA_ANGGOTA);
     $lihatSurat = PkkPermission::middleware(PkkPermission::LIHAT_BUKU, PkkPermission::KELOLA_SURAT);
     $lihatKegiatan = PkkPermission::middleware(
