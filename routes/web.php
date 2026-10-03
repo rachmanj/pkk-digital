@@ -12,8 +12,9 @@ use App\Http\Controllers\InventarisController;
 use App\Http\Controllers\KasController;
 use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\KegiatanFotoController;
-use App\Http\Controllers\OrangController;
 use App\Http\Controllers\KelurahanAktifController;
+use App\Http\Controllers\LaporanKotaController;
+use App\Http\Controllers\OrangController;
 use App\Http\Controllers\ProgramKerjaController;
 use App\Http\Controllers\StrukturController;
 use App\Http\Controllers\UserController;
@@ -70,6 +71,12 @@ Route::middleware('auth')->group(function () {
         PkkPermission::KELOLA_STRUKTUR,
     );
 
+    $lihatLaporanKota = PkkPermission::middleware(
+        PkkPermission::LIHAT_BUKU,
+        PkkPermission::VERIFIKASI_BUKU,
+        PkkPermission::LIHAT_KAS,
+    );
+
     Route::post('kelurahan-aktif', [KelurahanAktifController::class, 'update'])
         ->middleware('auth')
         ->name('kelurahan-aktif.update');
@@ -83,6 +90,10 @@ Route::middleware('auth')->group(function () {
     Route::get('export/{buku}', [CetakController::class, 'export'])
         ->middleware($cetakAkses)
         ->name('export.buku');
+
+    Route::get('laporan-kota', [LaporanKotaController::class, 'index'])
+        ->middleware($lihatLaporanKota)
+        ->name('laporan-kota.index');
 
     Route::get('orang/daftar-anggota', [OrangController::class, 'daftarAnggota'])
         ->middleware($lihatAnggota)

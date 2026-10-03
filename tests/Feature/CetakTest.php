@@ -52,6 +52,8 @@ class CetakTest extends TestCase
             } elseif (in_array($config['tipe'], ['struktur_pkk', 'struktur_lbs'], true)) {
                 $firstLabel = $config['kolom'][0]['label'];
                 $response->assertSee($firstLabel, false);
+            } elseif ($config['tipe'] === 'laporan_kota') {
+                $response->assertSee('Keanggotaan', false);
             } else {
                 $firstLabel = $config['kolom'][0]['label'];
                 $response->assertSee($firstLabel, false);

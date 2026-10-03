@@ -56,8 +56,25 @@ class KasService
      */
     public function ringkasan(int $kelurahanId, ?int $pokjaId, int $tahun): array
     {
-        $tunai = $this->ringkasanPos($kelurahanId, $pokjaId, $tahun, KasTransaksi::POS_TUNAI);
-        $bank = $this->ringkasanPos($kelurahanId, $pokjaId, $tahun, KasTransaksi::POS_BANK);
+        return $this->ringkasanPeriode($kelurahanId, $pokjaId, $tahun, null);
+    }
+
+    /**
+     * @return array{
+     *     tunai: array{saldo_awal: float, masuk: float, keluar: float, saldo_akhir: float},
+     *     bank: array{saldo_awal: float, masuk: float, keluar: float, saldo_akhir: float},
+     *     total: array{saldo_awal: float, masuk: float, keluar: float, saldo_akhir: float}
+     * }
+     */
+    public function ringkasanPeriode(int $kelurahanId, ?int $pokjaId, int $tahun, ?int $bulan): array
+    {
+        if ($bulan === null) {
+            $tunai = $this->ringkasanPos($kelurahanId, $pokjaId, $tahun, KasTransaksi::POS_TUNAI);
+            $bank = $this->ringkasanPos($kelurahanId, $pokjaId, $tahun, KasTransaksi::POS_BANK);
+        } else {
+            $tunai = $this->ringkasanPosPeriode($kelurahanId, $pokjaId, $tahun, $bulan, KasTransaksi::POS_TUNAI);
+            $bank = $this->ringkasanPosPeriode($kelurahanId, $pokjaId, $tahun, $bulan, KasTransaksi::POS_BANK);
+        }
 
         return [
             'tunai' => $tunai,
@@ -144,6 +161,41 @@ class KasService
             'keluar' => $keluar,
             'saldo_akhir' => $saldoAwal + $masuk - $keluar,
         ];
+    }
+
+    /**
+     * @return array{saldo_awal: float, masuk: float, keluar: float, saldo_akhir: float}
+     */
+    private function ringkasanPosPeriode(int $kelurahanId, ?int $pokjaId, int $tahun, int $bulan, string $pos): array
+    {
+        $saldoAwalTahun = $this->saldoAwal($kelurahanId, $pokjaId, $tahun, $pos);
+        $masukSebelum = $this->jumlahTransaksiSebelumBulan($kelurahanId, $pokjaId, $tahun, $pos, $bulan, KasTransaksi::JENIS_MASUK);
+        $keluarSebelum = $this->jumlahTransaksiSebelumBulan($kelurahanId, $pokjaId, $tahun, $pos, $bulan, KasTransaksi::JENIS_KELUAR);
+        $saldoAwal = $saldoAwalTahun + $masukSebelum - $keluarSebelum;
+
+        $masuk = $this->jumlahBulan($kelurahanId, $pokjaId, $tahun, $pos, $bulan, KasTransaksi::JENIS_MASUK);
+        $keluar = $this->jumlahBulan($kelurahanId, $pokjaId, $tahun, $pos, $bulan, KasTransaksi::JENIS_KELUAR);
+
+        return [
+            'saldo_awal' => $saldoAwal,
+            'masuk' => $masuk,
+            'keluar' => $keluar,
+            'saldo_akhir' => $saldoAwal + $masuk - $keluar,
+        ];
+    }
+
+    private function jumlahTransaksiSebelumBulan(
+        int $kelurahanId,
+        ?int $pokjaId,
+        int $tahun,
+        string $pos,
+        int $bulan,
+        string $jenis
+    ): float {
+        return (float) $this->transaksiQuery($kelurahanId, $pokjaId, $tahun, $pos)
+            ->whereMonth('tanggal', '<', $bulan)
+            ->where('jenis', $jenis)
+            ->sum('jumlah');
     }
 
     /**

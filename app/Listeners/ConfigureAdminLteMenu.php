@@ -104,6 +104,15 @@ class ConfigureAdminLteMenu
             ]);
         }
 
+        if ($this->can($user, PkkPermission::LIHAT_BUKU, PkkPermission::VERIFIKASI_BUKU, PkkPermission::LIHAT_KAS)) {
+            $event->menu->add([
+                'text' => 'Laporan ke Kota',
+                'url' => 'laporan-kota',
+                'icon' => 'bi bi-file-earmark-bar-graph',
+                'active' => ['laporan-kota*', 'cetak/laporan_kota*'],
+            ]);
+        }
+
         if ($user instanceof User && $user->can(PkkPermission::KELOLA_PENGGUNA)) {
             $event->menu->add([
                 'text' => 'Pengguna',

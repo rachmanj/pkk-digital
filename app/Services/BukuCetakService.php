@@ -22,6 +22,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 
 class BukuCetakService
 {
@@ -66,6 +67,10 @@ class BukuCetakService
 
         if ($config['tipe'] === 'struktur_lbs') {
             return $this->muatStrukturLbs($payload, $filter, $kelurahan);
+        }
+
+        if ($config['tipe'] === 'laporan_kota') {
+            return app(LaporanKotaService::class)->dataset($filter, $kelurahan, $kodeBuku);
         }
 
         $payload['baris'] = match ($kodeBuku) {
@@ -124,8 +129,16 @@ class BukuCetakService
             ? (string) $filter['rt']
             : null;
 
+        $bulan = isset($filter['bulan']) && $filter['bulan'] !== '' && $filter['bulan'] !== null
+            ? (int) $filter['bulan']
+            : null;
+        if ($bulan !== null && ($bulan < 1 || $bulan > 12)) {
+            $bulan = null;
+        }
+
         return [
             'tahun' => $tahun,
+            'bulan' => $bulan,
             'dari' => $this->parseTanggal($filter['dari'] ?? null),
             'sampai' => $this->parseTanggal($filter['sampai'] ?? null),
             'pokja_id' => $pokjaId,
@@ -743,8 +756,8 @@ class BukuCetakService
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, StrukturPengurus>  $tpPkk
-     * @param  \Illuminate\Support\Collection<int, StrukturPengurus>  $pokjaRows
+     * @param  Collection<int, StrukturPengurus>  $tpPkk
+     * @param  Collection<int, StrukturPengurus>  $pokjaRows
      * @return list<array{cells: array<string, string>}>
      */
     private function barisStrukturPkk($tpPkk, $pokjaRows): array
@@ -781,7 +794,7 @@ class BukuCetakService
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, StrukturPengurus>  $rows
+     * @param  Collection<int, StrukturPengurus>  $rows
      * @return list<array{cells: array<string, string>}>
      */
     private function barisStrukturLbs($rows, string $rt): array

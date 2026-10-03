@@ -1,4 +1,5 @@
 @php
+    $kelurahanKop = app(\App\Support\ActiveKelurahan::class)->resolve();
     $tampilan = $tampilan ?? app(\App\Services\BukuCetakTampilan::class)->untukKode($dataset['kode']);
     $orientasi = $tampilan['orientasi'];
     $kelasOrientasi = $tampilan['kelas_orientasi'];
@@ -140,11 +141,16 @@
 
     <div class="kop">
         <h1>Tim Penggerak Pemberdayaan Kesejahteraan Keluarga</h1>
-        <p>Kelurahan Gunung Sari Ilir, Kecamatan Balikpapan Tengah</p>
+        <p>
+            Kelurahan {{ $kelurahanKop?->nama ?? '—' }}, Kecamatan {{ $kelurahanKop?->kecamatan ?? '—' }}
+            @if ($kelurahanKop?->kota)
+                , {{ $kelurahanKop->kota }}
+            @endif
+        </p>
     </div>
 
     <div class="judul-buku">{{ $dataset['judul'] }}</div>
-    <div class="tahun">Tahun {{ $dataset['tahun'] }}</div>
+    <div class="tahun">{{ $dataset['label_periode'] ?? ('Tahun '.$dataset['tahun']) }}</div>
 
     @yield('isi_cetak')
 

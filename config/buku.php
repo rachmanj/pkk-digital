@@ -269,6 +269,16 @@ return [
         ],
     ],
 
+    'laporan_kota' => [
+        'judul' => 'Laporan ke PKK Kota',
+        'tipe' => 'laporan_kota',
+        'tanda_tangan' => [
+            ['peran' => 'Mengetahui, Ketua TP PKK'],
+            ['peran' => 'Sekretaris'],
+        ],
+        'kolom' => [],
+    ],
+
     'program_kerja_matriks' => [
         'judul' => 'Program Kerja & Pelaksanaan Program Kerja',
         'tipe' => 'program_kerja_matriks',

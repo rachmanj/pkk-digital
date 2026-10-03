@@ -13,6 +13,7 @@ use App\Exports\DaftarHadirExport;
 use App\Exports\InventarisExport;
 use App\Exports\KasPokjaExport;
 use App\Exports\KasTabunganExport;
+use App\Exports\LaporanKotaExport;
 use App\Exports\NotulenExport;
 use App\Exports\ProgramKerjaExport;
 use App\Exports\ProgramKerjaMatriksExport;
@@ -52,7 +53,11 @@ class CetakController extends Controller
         'program_kerja_matriks' => ProgramKerjaMatriksExport::class,
         'struktur_pkk' => StrukturPkkExport::class,
         'struktur_lbs' => StrukturLbsExport::class,
+        'laporan_kota' => LaporanKotaExport::class,
     ];
+
+    /** @var list<string> */
+    private const LAPORAN_KOTA_BUKU = ['laporan_kota'];
 
     /** @var list<string> */
     private const STRUKTUR_BUKU = ['struktur_pkk', 'struktur_lbs'];
@@ -184,6 +189,17 @@ class CetakController extends Controller
             return;
         }
 
+        if (in_array($buku, self::LAPORAN_KOTA_BUKU, true)) {
+            if ($user->can(PkkPermission::LIHAT_BUKU) || $user->can(PkkPermission::VERIFIKASI_BUKU)) {
+                return;
+            }
+            if ($user->can(PkkPermission::LIHAT_KAS)) {
+                return;
+            }
+
+            abort(403);
+        }
+
         if (! $user->can(PkkPermission::LIHAT_BUKU) && ! $user->can(PkkPermission::VERIFIKASI_BUKU)) {
             abort(403);
         }
@@ -216,6 +232,10 @@ class CetakController extends Controller
 
         if (($dataset['tipe'] ?? '') === 'struktur_lbs') {
             return 'cetak.struktur_lbs';
+        }
+
+        if (($dataset['tipe'] ?? '') === 'laporan_kota') {
+            return 'cetak.laporan_kota';
         }
 
         return 'cetak.tabel';
@@ -272,7 +292,7 @@ class CetakController extends Controller
      */
     private function filterDariRequest(Request $request): array
     {
-        return $request->only(['tahun', 'dari', 'sampai', 'pokja_id', 'kegiatan', 'buku', 'tutup_buku', 'rt']);
+        return $request->only(['tahun', 'bulan', 'dari', 'sampai', 'pokja_id', 'kegiatan', 'buku', 'tutup_buku', 'rt']);
     }
 
     private function namaBerkas(string $buku, int|string $tahun, string $ext): string
