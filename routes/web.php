@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OrangController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -25,3 +26,11 @@ Route::post('/logout', [AuthController::class, 'logout'])
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware('auth')
     ->name('dashboard');
+
+Route::middleware('auth')->group(function () {
+    Route::get('orang/daftar-anggota', [OrangController::class, 'daftarAnggota'])
+        ->name('orang.daftar-anggota');
+    Route::get('orang/{orang}/foto', [OrangController::class, 'foto'])
+        ->name('orang.foto');
+    Route::resource('orang', OrangController::class);
+});

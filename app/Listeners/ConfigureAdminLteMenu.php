@@ -18,6 +18,13 @@ class ConfigureAdminLteMenu
             'icon' => 'bi bi-speedometer2',
             'active' => ['dashboard'],
         ]);
+
+        $event->menu->add([
+            'text' => 'Data Anggota',
+            'url' => 'orang',
+            'icon' => 'bi bi-person-lines-fill',
+            'active' => ['orang*'],
+        ]);
     }
 
     private function resetMenu(Builder $builder): void
