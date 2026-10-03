@@ -352,7 +352,37 @@ class Buku2026Importer
             'jenis' => $jenisKeanggotaan,
         ]);
 
-        $existingOrang = $this->findOrang($kelurahan->id, $nama, $tanggalLahir, $alamat);
+        $match = $this->resolveOrangMatch($kelurahan->id, $nama, $tanggalLahir);
+        $existingOrang = $match['orang'];
+
+        if ($match['needsReview']) {
+            $incomingDate = $tanggalLahir?->toDateString() ?? '(kosong)';
+            $existingDates = Orang::query()
+                ->where('kelurahan_id', $kelurahan->id)
+                ->whereRaw('LOWER(TRIM(nama)) = ?', [mb_strtolower(trim($nama))])
+                ->whereNotNull('tanggal_lahir')
+                ->pluck('tanggal_lahir')
+                ->map(fn ($d) => $d->toDateString())
+                ->unique()
+                ->values()
+                ->all();
+            $detail = 'baris ini '.$incomingDate;
+            if ($existingDates !== []) {
+                $detail .= ', di database '.implode(', ', $existingDates);
+            }
+            $report->needsReviewCases[] = [
+                'nama' => $nama,
+                'detail' => $detail,
+            ];
+        }
+
+        if ($match['merged']) {
+            $report->mergedRows++;
+            if (! in_array($nama, $report->mergedNames, true)) {
+                $report->mergedNames[] = $nama;
+            }
+        }
+
         $existingKeanggotaan = $existingOrang !== null
             ? $this->findKeanggotaan($existingOrang->id, $jenisKeanggotaan, $jabatan)
             : null;
@@ -360,6 +390,8 @@ class Buku2026Importer
         if ($this->dryRun) {
             if ($existingOrang === null || $existingKeanggotaan === null) {
                 $report->created++;
+            } elseif ($match['merged']) {
+                $report->updated++;
             } else {
                 $report->updated++;
             }
@@ -405,16 +437,7 @@ class Buku2026Importer
                     ]);
                     $orangBaru = true;
                 } else {
-                    $orang->fill([
-                        'jenis_kelamin' => $jenisKelamin,
-                        'tempat_lahir' => $payload['tempat_lahir'] ?? $orang->tempat_lahir,
-                        'tanggal_lahir' => $tanggalLahir ?? $orang->tanggal_lahir,
-                        'status_perkawinan' => $payload['status_perkawinan'] ?? $orang->status_perkawinan,
-                        'alamat' => $alamat ?? $orang->alamat,
-                        'pendidikan' => $payload['pendidikan'] ?? $orang->pendidikan,
-                        'pekerjaan' => $payload['pekerjaan'] ?? $orang->pekerjaan,
-                        'catatan' => $payload['catatan'] ?? $orang->catatan,
-                    ]);
+                    $this->applyPayloadToOrang($orang, $payload, $jenisKelamin, $tanggalLahir, $alamat);
                     if ($orang->isDirty()) {
                         $orang->save();
                         $orangDiubah = true;
@@ -700,35 +723,95 @@ class Buku2026Importer
         }
     }
 
-    private function findOrang(int $kelurahanId, string $nama, ?Carbon $tanggalLahir, ?string $alamat): ?Orang
+    /**
+     * @return array{orang: ?Orang, merged: bool, needsReview: bool}
+     */
+    private function resolveOrangMatch(int $kelurahanId, string $nama, ?Carbon $tanggalLahir): array
     {
         $candidates = Orang::query()
             ->where('kelurahan_id', $kelurahanId)
             ->whereRaw('LOWER(TRIM(nama)) = ?', [mb_strtolower(trim($nama))])
             ->get();
 
-        foreach ($candidates as $orang) {
-            if ($tanggalLahir !== null) {
+        if ($candidates->isEmpty()) {
+            return ['orang' => null, 'merged' => false, 'needsReview' => false];
+        }
+
+        if ($tanggalLahir !== null) {
+            foreach ($candidates as $orang) {
                 if ($orang->tanggal_lahir !== null
                     && $orang->tanggal_lahir->toDateString() === $tanggalLahir->toDateString()) {
-                    return $orang;
+                    return ['orang' => $orang, 'merged' => false, 'needsReview' => false];
                 }
-
-                continue;
-            }
-
-            if ($alamat !== null && $alamat !== ''
-                && $orang->alamat !== null
-                && mb_strtolower(trim($orang->alamat)) === mb_strtolower(trim($alamat))) {
-                return $orang;
             }
         }
 
-        if ($tanggalLahir === null && ($alamat === null || $alamat === '') && $candidates->count() === 1) {
-            return $candidates->first();
+        if ($tanggalLahir !== null) {
+            $tanpaTanggalLahir = $candidates->filter(fn (Orang $orang) => $orang->tanggal_lahir === null);
+            if ($tanpaTanggalLahir->count() === 1) {
+                return ['orang' => $tanpaTanggalLahir->first(), 'merged' => true, 'needsReview' => false];
+            }
+            if ($tanpaTanggalLahir->count() > 1) {
+                return ['orang' => null, 'merged' => false, 'needsReview' => true];
+            }
+        } else {
+            if ($candidates->count() === 1) {
+                $matched = $candidates->first();
+                $merged = $matched->tanggal_lahir !== null;
+
+                return ['orang' => $matched, 'merged' => $merged, 'needsReview' => false];
+            }
+
+            $tanpaTanggalLahir = $candidates->filter(fn (Orang $orang) => $orang->tanggal_lahir === null);
+            if ($tanpaTanggalLahir->count() === 1) {
+                return ['orang' => $tanpaTanggalLahir->first(), 'merged' => false, 'needsReview' => false];
+            }
+            if ($tanpaTanggalLahir->count() > 1) {
+                return ['orang' => null, 'merged' => false, 'needsReview' => true];
+            }
         }
 
-        return null;
+        if ($tanggalLahir !== null) {
+            $conflict = $candidates->contains(
+                fn (Orang $orang) => $orang->tanggal_lahir !== null
+                    && $orang->tanggal_lahir->toDateString() !== $tanggalLahir->toDateString(),
+            );
+
+            return ['orang' => null, 'merged' => false, 'needsReview' => $conflict];
+        }
+
+        return ['orang' => null, 'merged' => false, 'needsReview' => true];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function applyPayloadToOrang(
+        Orang $orang,
+        array $payload,
+        string $jenisKelamin,
+        ?Carbon $tanggalLahir,
+        ?string $alamat,
+    ): void {
+        $orang->fill([
+            'jenis_kelamin' => $jenisKelamin,
+            'tempat_lahir' => $this->coalesceNullable($payload['tempat_lahir'] ?? null, $orang->tempat_lahir),
+            'tanggal_lahir' => $tanggalLahir ?? $orang->tanggal_lahir,
+            'status_perkawinan' => $this->coalesceNullable($payload['status_perkawinan'] ?? null, $orang->status_perkawinan),
+            'alamat' => $this->coalesceNullable($alamat, $orang->alamat),
+            'pendidikan' => $this->coalesceNullable($payload['pendidikan'] ?? null, $orang->pendidikan),
+            'pekerjaan' => $this->coalesceNullable($payload['pekerjaan'] ?? null, $orang->pekerjaan),
+            'catatan' => $this->coalesceNullable($payload['catatan'] ?? null, $orang->catatan),
+        ]);
+    }
+
+    private function coalesceNullable(?string $incoming, ?string $existing): ?string
+    {
+        if ($incoming !== null && trim($incoming) !== '') {
+            return trim($incoming);
+        }
+
+        return $existing;
     }
 
     private function findKeanggotaan(int $orangId, string $jenis, string $jabatan): ?Keanggotaan

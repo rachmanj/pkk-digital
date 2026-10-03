@@ -84,8 +84,23 @@ class ImportBuku2026 extends Command
                 [$dryRun ? 'Akan diperbarui' : 'Diperbarui', (string) $totals['updated']],
                 ['Dilewati', (string) $totals['skipped']],
                 ['Gagal', (string) $totals['failed']],
+                ['Digabung (tanpa tanggal lahir)', (string) $report->mergedRows],
             ],
         );
+
+        if ($report->mergedNames !== []) {
+            $this->info('Baris digabung ke orang yang sudah ada:');
+            foreach ($report->mergedNames as $nama) {
+                $this->line("  - {$nama}");
+            }
+        }
+
+        if ($report->needsReviewCases !== []) {
+            $this->warn('Perlu diperiksa manusia (nama sama, tanggal lahir berbeda):');
+            foreach ($report->needsReviewCases as $case) {
+                $this->line("  - {$case['nama']}: {$case['detail']}");
+            }
+        }
 
         if ($report->failedRows !== []) {
             $this->warn('Baris gagal:');

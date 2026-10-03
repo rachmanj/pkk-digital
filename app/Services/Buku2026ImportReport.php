@@ -14,6 +14,14 @@ class Buku2026ImportReport
 
     public int $failed = 0;
 
+    public int $mergedRows = 0;
+
+    /** @var list<string> */
+    public array $mergedNames = [];
+
+    /** @var list<array{nama: string, detail: string}> */
+    public array $needsReviewCases = [];
+
     /** @var list<array{sheet: string, row: int, side: string, reason: string}> */
     public array $skippedRows = [];
 
@@ -55,8 +63,25 @@ class Buku2026ImportReport
             "  diperbarui: {$this->updated}",
             "  dilewati: {$this->skipped}",
             "  gagal: {$this->failed}",
+            "  digabung (salah satu baris tanpa tanggal lahir): {$this->mergedRows}",
             '',
         ];
+
+        if ($this->mergedNames !== []) {
+            $lines[] = 'Nama digabung ke baris orang yang sudah ada:';
+            foreach ($this->mergedNames as $nama) {
+                $lines[] = "  - {$nama}";
+            }
+            $lines[] = '';
+        }
+
+        if ($this->needsReviewCases !== []) {
+            $lines[] = 'Perlu diperiksa manusia (nama sama, tanggal lahir keduanya ada dan berbeda):';
+            foreach ($this->needsReviewCases as $case) {
+                $lines[] = "  - {$case['nama']}: {$case['detail']}";
+            }
+            $lines[] = '';
+        }
 
         if ($this->skippedRows !== []) {
             $lines[] = 'Baris dilewati:';

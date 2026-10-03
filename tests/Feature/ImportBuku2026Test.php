@@ -85,8 +85,46 @@ class ImportBuku2026Test extends TestCase
             ]);
         }
 
-        $this->assertSame(3, Orang::query()->count());
+        $this->assertSame(6, Orang::query()->count());
         $this->assertSame(3, AgendaSurat::query()->count());
+    }
+
+    public function test_gabung_baris_nama_sama_salah_satu_tanpa_tanggal_lahir(): void
+    {
+        $importer = new Buku2026Importer(false);
+        $report = $importer->run($this->fixturePath());
+
+        $this->assertSame(
+            1,
+            Orang::query()->where('nama', 'DEWI MERGE TEST')->count(),
+        );
+
+        $dewi = Orang::query()->where('nama', 'DEWI MERGE TEST')->first();
+        $this->assertNotNull($dewi);
+        $this->assertSame('1976-02-06', $dewi->tanggal_lahir->toDateString());
+        $this->assertSame('Jl. Merge Tetap', $dewi->alamat);
+
+        $this->assertSame(
+            1,
+            Keanggotaan::query()->where('orang_id', $dewi->id)->count(),
+        );
+
+        $this->assertGreaterThanOrEqual(1, $report->mergedRows);
+        $this->assertContains('DEWI MERGE TEST', $report->mergedNames);
+    }
+
+    public function test_nama_sama_dua_tanggal_lahir_berbeda_mencatat_perlu_diperiksa(): void
+    {
+        $importer = new Buku2026Importer(false);
+        $report = $importer->run($this->fixturePath());
+
+        $this->assertSame(
+            2,
+            Orang::query()->where('nama', 'RINA BEDA TGL')->count(),
+        );
+
+        $reviewNama = collect($report->needsReviewCases)->pluck('nama');
+        $this->assertTrue($reviewNama->contains('RINA BEDA TGL'));
     }
 
     public function test_baris_nama_kosong_dilewati(): void
