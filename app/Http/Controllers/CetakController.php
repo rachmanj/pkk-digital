@@ -10,6 +10,7 @@ use App\Exports\BukuTamuExport;
 use App\Exports\DaftarAnggotaExport;
 use App\Exports\DaftarAnggotaTpPkkExport;
 use App\Exports\DaftarHadirExport;
+use App\Exports\InventarisExport;
 use App\Exports\KasPokjaExport;
 use App\Exports\KasTabunganExport;
 use App\Exports\NotulenExport;
@@ -40,12 +41,16 @@ class CetakController extends Controller
         'daftar_anggota_tp_pkk' => DaftarAnggotaTpPkkExport::class,
         'buku_tamu' => BukuTamuExport::class,
         'buku_kunjungan' => BukuKunjunganExport::class,
+        'buku_inventaris' => InventarisExport::class,
         'kas_pokja' => KasPokjaExport::class,
         'kas_tabungan' => KasTabunganExport::class,
     ];
 
     /** @var list<string> */
     private const KAS_BUKU = ['kas_pokja', 'kas_tabungan'];
+
+    /** @var list<string> */
+    private const INVENTARIS_BUKU = ['buku_inventaris'];
 
     public function __construct(
         private BukuCetakService $bukuCetakService,
@@ -141,6 +146,14 @@ class CetakController extends Controller
             return;
         }
 
+        if (in_array($buku, self::INVENTARIS_BUKU, true)) {
+            if (! $user->can(PkkPermission::LIHAT_INVENTARIS) && ! $user->can(PkkPermission::KELOLA_INVENTARIS)) {
+                abort(403);
+            }
+
+            return;
+        }
+
         if (! $user->can(PkkPermission::LIHAT_BUKU) && ! $user->can(PkkPermission::VERIFIKASI_BUKU)) {
             abort(403);
         }
@@ -184,7 +197,7 @@ class CetakController extends Controller
      */
     private function authorizeCetakPokja(string $buku, array $filter): void
     {
-        if (in_array($buku, self::KAS_BUKU, true)) {
+        if (in_array($buku, self::KAS_BUKU, true) || in_array($buku, self::INVENTARIS_BUKU, true)) {
             $pokjaId = $filter['pokja_id'] ?? null;
             if ($pokjaId === null && isset($filter['buku']) && is_string($filter['buku']) && str_starts_with($filter['buku'], 'pokja-')) {
                 $pokjaId = (int) substr($filter['buku'], 6);

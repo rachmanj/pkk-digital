@@ -181,6 +181,25 @@ return [
         ],
     ],
 
+    'buku_inventaris' => [
+        'judul' => 'Buku Inventaris',
+        'tipe' => 'tabel',
+        'tanda_tangan' => [
+            ['peran' => 'Ketua'],
+            ['peran' => 'Sekretaris'],
+        ],
+        'kolom' => [
+            ['label' => 'NO.', 'key' => 'no'],
+            ['label' => 'NAMA BARANG', 'key' => 'nama_barang'],
+            ['label' => 'ASAL BARANG', 'key' => 'asal_barang'],
+            ['label' => 'TANGGAL PENEIMAAN/PEMBELIAN', 'key' => 'tanggal_terima'],
+            ['label' => 'JUMLAH', 'key' => 'jumlah'],
+            ['label' => 'TEMPAT PENYIMPANAN', 'key' => 'tempat_penyimpanan'],
+            ['label' => 'KONDISI BARANG', 'key' => 'kondisi'],
+            ['label' => 'KETERANGAN', 'key' => 'keterangan'],
+        ],
+    ],
+
     'buku_kunjungan' => [
         'judul' => 'Buku Kunjungan',
         'tipe' => 'tabel',

@@ -28,6 +28,10 @@ final class PkkPermission
 
     public const LIHAT_KAS = 'lihat_kas';
 
+    public const KELOLA_INVENTARIS = 'kelola_inventaris';
+
+    public const LIHAT_INVENTARIS = 'lihat_inventaris';
+
     /**
      * @return list<string>
      */
@@ -46,6 +50,8 @@ final class PkkPermission
             self::LIHAT_AUDIT,
             self::KELOLA_KAS,
             self::LIHAT_KAS,
+            self::KELOLA_INVENTARIS,
+            self::LIHAT_INVENTARIS,
         ];
     }
 

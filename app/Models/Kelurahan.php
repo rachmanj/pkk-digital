@@ -44,4 +44,9 @@ class Kelurahan extends Model
     {
         return $this->hasMany(KasTransaksi::class);
     }
+
+    public function inventarisBarang(): HasMany
+    {
+        return $this->hasMany(InventarisBarang::class);
+    }
 }

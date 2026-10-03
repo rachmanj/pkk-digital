@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AgendaSurat;
 use App\Models\BukuKunjungan;
 use App\Models\BukuTamu;
+use App\Models\InventarisBarang;
 use App\Models\KasTransaksi;
 use App\Models\Keanggotaan;
 use App\Models\Kegiatan;
@@ -65,6 +66,7 @@ class BukuCetakService
             'daftar_anggota_tp_pkk' => $this->barisDaftarAnggotaTpPkk($filter, $kelurahan),
             'buku_tamu' => $this->barisBukuTamu($filter, $kelurahan),
             'buku_kunjungan' => $this->barisBukuKunjungan($filter, $kelurahan),
+            'buku_inventaris' => $this->barisBukuInventaris($filter, $kelurahan),
             'kas_pokja' => $this->barisKasPokja($filter, $kelurahan),
             'kas_tabungan' => $this->barisKasTabungan($filter, $kelurahan),
             default => [],
@@ -462,6 +464,48 @@ class BukuCetakService
                     'keperluan' => $tamu->keperluan ?: '—',
                     'tujuan' => $tamu->tujuan ?: '—',
                     'tanda_tangan' => '',
+                ],
+            ];
+            $no++;
+        }
+
+        return $baris;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filter
+     * @return list<array{cells: array<string, string>}>
+     */
+    private function barisBukuInventaris(array $filter, ?Kelurahan $kelurahan): array
+    {
+        $query = InventarisBarang::query()
+            ->tahun($filter['tahun'])
+            ->orderBy('nama_barang')
+            ->orderBy('id');
+
+        if ($kelurahan) {
+            $query->where('kelurahan_id', $kelurahan->id);
+        }
+
+        if ($filter['pokja_id']) {
+            $query->where('pokja_id', $filter['pokja_id']);
+        } else {
+            $query->whereNull('pokja_id');
+        }
+
+        $baris = [];
+        $no = 1;
+        foreach ($query->get() as $item) {
+            $baris[] = [
+                'cells' => [
+                    'no' => (string) $no,
+                    'nama_barang' => $item->nama_barang,
+                    'asal_barang' => $item->asal_barang ?: '—',
+                    'tanggal_terima' => $this->formatTanggal($item->tanggal_terima),
+                    'jumlah' => number_format($item->jumlah, 0, ',', '.'),
+                    'tempat_penyimpanan' => $item->tempat_penyimpanan ?: '—',
+                    'kondisi' => InventarisBarang::labelKondisiUntuk($item->kondisi),
+                    'keterangan' => $item->keterangan ?: '—',
                 ],
             ];
             $no++;

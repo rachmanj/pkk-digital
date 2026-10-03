@@ -77,6 +77,15 @@ class ConfigureAdminLteMenu
             ]);
         }
 
+        if ($this->can($user, PkkPermission::LIHAT_INVENTARIS, PkkPermission::KELOLA_INVENTARIS)) {
+            $event->menu->add([
+                'text' => 'Inventaris',
+                'url' => 'inventaris',
+                'icon' => 'bi bi-box-seam',
+                'active' => ['inventaris*'],
+            ]);
+        }
+
         if ($user instanceof User && $user->can(PkkPermission::KELOLA_PENGGUNA)) {
             $event->menu->add([
                 'text' => 'Pengguna',

@@ -8,6 +8,7 @@ use App\Http\Controllers\BukuTamuController;
 use App\Http\Controllers\CetakController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisposisiController;
+use App\Http\Controllers\InventarisController;
 use App\Http\Controllers\KasController;
 use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\KegiatanFotoController;
@@ -49,12 +50,15 @@ Route::middleware('auth')->group(function () {
     $lihatTamu = PkkPermission::middleware(PkkPermission::LIHAT_BUKU, PkkPermission::KELOLA_BUKU_TAMU);
     $lihatKunjungan = PkkPermission::middleware(PkkPermission::LIHAT_BUKU, PkkPermission::KELOLA_BUKU_KUNJUNGAN);
     $lihatKas = PkkPermission::middleware(PkkPermission::LIHAT_KAS, PkkPermission::KELOLA_KAS);
+    $lihatInventaris = PkkPermission::middleware(PkkPermission::LIHAT_INVENTARIS, PkkPermission::KELOLA_INVENTARIS);
 
     $cetakAkses = PkkPermission::middleware(
         PkkPermission::LIHAT_BUKU,
         PkkPermission::VERIFIKASI_BUKU,
         PkkPermission::LIHAT_KAS,
         PkkPermission::KELOLA_KAS,
+        PkkPermission::LIHAT_INVENTARIS,
+        PkkPermission::KELOLA_INVENTARIS,
     );
 
     Route::get('cetak/{buku}', [CetakController::class, 'show'])
@@ -115,6 +119,14 @@ Route::middleware('auth')->group(function () {
     Route::get('buku-kunjungan/{buku_kunjungan}/edit', [BukuKunjunganController::class, 'edit'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_BUKU_KUNJUNGAN))->name('buku-kunjungan.edit');
     Route::put('buku-kunjungan/{buku_kunjungan}', [BukuKunjunganController::class, 'update'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_BUKU_KUNJUNGAN))->name('buku-kunjungan.update');
     Route::delete('buku-kunjungan/{buku_kunjungan}', [BukuKunjunganController::class, 'destroy'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_BUKU_KUNJUNGAN))->name('buku-kunjungan.destroy');
+
+    Route::get('inventaris', [InventarisController::class, 'index'])->middleware($lihatInventaris)->name('inventaris.index');
+    Route::get('inventaris/create', [InventarisController::class, 'create'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_INVENTARIS))->name('inventaris.create');
+    Route::post('inventaris', [InventarisController::class, 'store'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_INVENTARIS))->name('inventaris.store');
+    Route::get('inventaris/{inventaris_barang}', [InventarisController::class, 'show'])->middleware($lihatInventaris)->name('inventaris.show');
+    Route::get('inventaris/{inventaris_barang}/edit', [InventarisController::class, 'edit'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_INVENTARIS))->name('inventaris.edit');
+    Route::put('inventaris/{inventaris_barang}', [InventarisController::class, 'update'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_INVENTARIS))->name('inventaris.update');
+    Route::delete('inventaris/{inventaris_barang}', [InventarisController::class, 'destroy'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_INVENTARIS))->name('inventaris.destroy');
 
     Route::get('kas/rekap', [KasController::class, 'rekap'])->middleware($lihatKas)->name('kas.rekap');
     Route::get('kas/rekap/pdf', [KasController::class, 'rekapPdf'])->middleware($lihatKas)->name('kas.rekap.pdf');
