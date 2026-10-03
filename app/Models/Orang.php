@@ -8,11 +8,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Orang extends Model
 {
     /** @use HasFactory<OrangFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $table = 'orang';
 
@@ -37,6 +39,14 @@ class Orang extends Model
         return [
             'tanggal_lahir' => 'date',
         ];
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('orang')
+            ->logAll()
+            ->logOnlyDirty();
     }
 
     protected function umur(): Attribute

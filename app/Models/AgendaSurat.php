@@ -8,11 +8,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class AgendaSurat extends Model
 {
     /** @use HasFactory<AgendaSuratFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     public const JENIS_MASUK = 'masuk';
 
@@ -45,6 +47,14 @@ class AgendaSurat extends Model
             'tanggal_terima' => 'date',
             'tahun' => 'integer',
         ];
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('agenda_surat')
+            ->logAll()
+            ->logOnlyDirty();
     }
 
     protected static function booted(): void

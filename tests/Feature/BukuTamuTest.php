@@ -15,14 +15,6 @@ class BukuTamuTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function actingAdmin(): User
-    {
-        return User::factory()->create([
-            'email' => 'admin-buku-tamu@pkk.test',
-            'password' => 'password',
-        ]);
-    }
-
     /**
      * @return array{kelurahan: Kelurahan, pokja: Collection<int, Pokja>}
      */

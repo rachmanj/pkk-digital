@@ -17,14 +17,6 @@ class KegiatanTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function actingAdmin(): User
-    {
-        return User::factory()->create([
-            'email' => 'admin-kegiatan@pkk.test',
-            'password' => 'password',
-        ]);
-    }
-
     /**
      * @return array{kelurahan: Kelurahan, pokja: \Illuminate\Support\Collection<int, Pokja>}
      */

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesPokjaScope;
 use App\Http\Requests\StoreAgendaSuratRequest;
 use App\Http\Requests\UpdateAgendaSuratRequest;
 use App\Models\AgendaSurat;
@@ -18,6 +19,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AgendaSuratController extends Controller
 {
+    use HandlesPokjaScope;
+
     public function index(Request $request): View
     {
         $kelurahan = $this->activeKelurahan();
@@ -33,12 +36,13 @@ class AgendaSuratController extends Controller
 
         $buku = $request->string('buku')->toString();
         if ($buku === '') {
-            $buku = 'kelurahan';
+            $buku = $this->defaultBukuForKetuaPokja();
         }
         $pokjaIdFilter = null;
         if (str_starts_with($buku, 'pokja-')) {
             $pokjaIdFilter = (int) substr($buku, 6);
         }
+        $this->authorizePokjaBukuFilter($pokjaIdFilter);
 
         $query = AgendaSurat::query()
             ->with(['disposisi.pokja', 'disposisi.user'])
@@ -133,6 +137,8 @@ class AgendaSuratController extends Controller
 
         $validated = $request->validated();
         $pokjaId = isset($validated['pokja_id']) ? (int) $validated['pokja_id'] : null;
+        $pokjaId = $this->pokjaIdForKetuaPokjaWrite($pokjaId);
+        $this->authorizePokjaRecord($pokjaId);
         $tahun = (int) date('Y', strtotime($validated['tanggal_surat']));
 
         $agendaSurat = DB::transaction(function () use ($validated, $kelurahan, $pokjaId, $tahun, $request) {
@@ -171,6 +177,8 @@ class AgendaSuratController extends Controller
 
     public function show(AgendaSurat $agendaSurat): View
     {
+        $this->authorizePokjaRecord($agendaSurat->pokja_id);
+
         $agendaSurat->load(['disposisi.pokja', 'disposisi.user', 'disposisi.olehUser', 'pokja', 'kelurahan']);
         $pokjaList = Pokja::query()
             ->where('kelurahan_id', $agendaSurat->kelurahan_id)
@@ -187,6 +195,8 @@ class AgendaSuratController extends Controller
 
     public function edit(AgendaSurat $agendaSurat): View
     {
+        $this->authorizePokjaRecord($agendaSurat->pokja_id);
+
         $pokjaList = Pokja::query()
             ->where('kelurahan_id', $agendaSurat->kelurahan_id)
             ->orderBy('kode')
@@ -200,8 +210,12 @@ class AgendaSuratController extends Controller
 
     public function update(UpdateAgendaSuratRequest $request, AgendaSurat $agendaSurat): RedirectResponse
     {
+        $this->authorizePokjaRecord($agendaSurat->pokja_id);
+
         $validated = $request->validated();
         $pokjaId = isset($validated['pokja_id']) ? (int) $validated['pokja_id'] : null;
+        $pokjaId = $this->pokjaIdForKetuaPokjaWrite($pokjaId);
+        $this->authorizePokjaRecord($pokjaId);
 
         $agendaSurat->update([
             'jenis' => $validated['jenis'],
@@ -225,6 +239,8 @@ class AgendaSuratController extends Controller
 
     public function destroy(AgendaSurat $agendaSurat): RedirectResponse
     {
+        $this->authorizePokjaRecord($agendaSurat->pokja_id);
+
         if ($agendaSurat->file_path !== null) {
             Storage::disk('local')->delete($agendaSurat->file_path);
         }
@@ -237,6 +253,8 @@ class AgendaSuratController extends Controller
 
     public function berkas(AgendaSurat $agendaSurat): StreamedResponse
     {
+        $this->authorizePokjaRecord($agendaSurat->pokja_id);
+
         if ($agendaSurat->file_path === null || ! Storage::disk('local')->exists($agendaSurat->file_path)) {
             abort(404);
         }

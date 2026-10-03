@@ -13,14 +13,6 @@ class BukuKunjunganTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function actingAdmin(): User
-    {
-        return User::factory()->create([
-            'email' => 'admin-buku-kunjungan@pkk.test',
-            'password' => 'password',
-        ]);
-    }
-
     private function seedMaster(): Kelurahan
     {
         $this->seed(MasterSeeder::class);

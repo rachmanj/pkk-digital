@@ -9,11 +9,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Kegiatan extends Model
 {
     /** @use HasFactory<KegiatanFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     public const JENIS_PERTEMUAN = 'pertemuan';
 
@@ -67,6 +69,14 @@ class Kegiatan extends Model
         return [
             'tanggal' => 'date',
         ];
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('kegiatan')
+            ->logAll()
+            ->logOnlyDirty();
     }
 
     public function kelurahan(): BelongsTo

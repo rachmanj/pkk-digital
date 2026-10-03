@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesPokjaScope;
 use App\Http\Requests\StoreBukuTamuRequest;
 use App\Http\Requests\UpdateBukuTamuRequest;
 use App\Models\BukuTamu;
@@ -14,6 +15,8 @@ use Illuminate\View\View;
 
 class BukuTamuController extends Controller
 {
+    use HandlesPokjaScope;
+
     public function index(Request $request): View
     {
         $kelurahan = $this->activeKelurahan();
@@ -25,12 +28,13 @@ class BukuTamuController extends Controller
 
         $buku = $request->string('buku')->toString();
         if ($buku === '') {
-            $buku = 'kelurahan';
+            $buku = $this->defaultBukuForKetuaPokja();
         }
         $pokjaIdFilter = null;
         if (str_starts_with($buku, 'pokja-')) {
             $pokjaIdFilter = (int) substr($buku, 6);
         }
+        $this->authorizePokjaBukuFilter($pokjaIdFilter);
 
         $query = BukuTamu::query()
             ->tahun($tahun)
@@ -93,6 +97,8 @@ class BukuTamuController extends Controller
 
         $validated = $request->validated();
         $pokjaId = isset($validated['pokja_id']) ? (int) $validated['pokja_id'] : null;
+        $pokjaId = $this->pokjaIdForKetuaPokjaWrite($pokjaId);
+        $this->authorizePokjaRecord($pokjaId);
         $tahun = (int) date('Y', strtotime($validated['tanggal']));
 
         $bukuTamu = DB::transaction(function () use ($validated, $kelurahan, $pokjaId, $tahun) {
@@ -118,6 +124,8 @@ class BukuTamuController extends Controller
 
     public function show(BukuTamu $bukuTamu): View
     {
+        $this->authorizePokjaRecord($bukuTamu->pokja_id);
+
         $bukuTamu->load(['pokja', 'kelurahan']);
 
         return view('buku-tamu.show', [
@@ -127,6 +135,8 @@ class BukuTamuController extends Controller
 
     public function edit(BukuTamu $bukuTamu): View
     {
+        $this->authorizePokjaRecord($bukuTamu->pokja_id);
+
         $pokjaList = Pokja::query()
             ->where('kelurahan_id', $bukuTamu->kelurahan_id)
             ->orderBy('kode')
@@ -140,8 +150,12 @@ class BukuTamuController extends Controller
 
     public function update(UpdateBukuTamuRequest $request, BukuTamu $bukuTamu): RedirectResponse
     {
+        $this->authorizePokjaRecord($bukuTamu->pokja_id);
+
         $validated = $request->validated();
         $pokjaId = isset($validated['pokja_id']) ? (int) $validated['pokja_id'] : null;
+        $pokjaId = $this->pokjaIdForKetuaPokjaWrite($pokjaId);
+        $this->authorizePokjaRecord($pokjaId);
 
         $bukuTamu->update([
             'pokja_id' => $pokjaId,
@@ -159,6 +173,8 @@ class BukuTamuController extends Controller
 
     public function destroy(BukuTamu $bukuTamu): RedirectResponse
     {
+        $this->authorizePokjaRecord($bukuTamu->pokja_id);
+
         $bukuTamu->delete();
 
         return redirect()->route('buku-tamu.index')

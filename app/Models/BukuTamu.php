@@ -43,6 +43,7 @@ class BukuTamu extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
+            ->useLogName('buku_tamu')
             ->logAll()
             ->logOnlyDirty();
     }

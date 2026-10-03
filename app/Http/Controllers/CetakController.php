@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesPokjaScope;
 use App\Exports\AgendaSuratKeluarExport;
 use App\Exports\AgendaSuratMasukExport;
 use App\Exports\BukuKegiatanExport;
@@ -21,6 +22,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CetakController extends Controller
 {
+    use HandlesPokjaScope;
+
     /** @var array<string, class-string> */
     private const EXPORT_MAP = [
         'agenda_surat_masuk' => AgendaSuratMasukExport::class,
@@ -92,7 +95,35 @@ class CetakController extends Controller
             abort(404);
         }
 
-        return $this->bukuCetakService->data($buku, $this->filterDariRequest($request));
+        $filter = $this->filterDariRequest($request);
+        $this->authorizeCetakPokja($buku, $filter);
+
+        return $this->bukuCetakService->data($buku, $filter);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filter
+     */
+    private function authorizeCetakPokja(string $buku, array $filter): void
+    {
+        if ($this->ketuaPokjaPokjaId() === null) {
+            return;
+        }
+
+        $pokjaId = null;
+        if (str_starts_with($buku, 'pokja-')) {
+            $pokjaId = (int) substr($buku, 6);
+        } elseif (isset($filter['pokja_id']) && $filter['pokja_id'] !== '') {
+            $pokjaId = (int) $filter['pokja_id'];
+        } elseif (isset($filter['buku']) && is_string($filter['buku']) && str_starts_with($filter['buku'], 'pokja-')) {
+            $pokjaId = (int) substr($filter['buku'], 6);
+        }
+
+        if ($pokjaId === null) {
+            abort(403);
+        }
+
+        $this->authorizePokjaRecord($pokjaId);
     }
 
     /**

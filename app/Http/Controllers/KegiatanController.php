@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesPokjaScope;
 use App\Http\Requests\StoreKegiatanRequest;
 use App\Http\Requests\UpdateKegiatanRequest;
 use App\Models\Kegiatan;
@@ -19,6 +20,8 @@ use Illuminate\View\View;
 
 class KegiatanController extends Controller
 {
+    use HandlesPokjaScope;
+
     public function index(Request $request): View
     {
         $kelurahan = $this->activeKelurahan();
@@ -37,6 +40,10 @@ class KegiatanController extends Controller
 
         $pokjaId = $request->input('pokja_id');
         $pokjaIdFilter = ($pokjaId !== null && $pokjaId !== '') ? (int) $pokjaId : null;
+        $ketuaPokjaId = $this->ketuaPokjaPokjaId();
+        if ($ketuaPokjaId !== null) {
+            $pokjaIdFilter = $ketuaPokjaId;
+        }
 
         $query = Kegiatan::query()
             ->with('pokja')
@@ -117,10 +124,13 @@ class KegiatanController extends Controller
         }
 
         $validated = $request->validated();
+        $pokjaId = isset($validated['pokja_id']) ? (int) $validated['pokja_id'] : null;
+        $pokjaId = $this->pokjaIdForKetuaPokjaWrite($pokjaId);
+        $this->authorizePokjaRecord($pokjaId);
 
         $kegiatan = Kegiatan::query()->create([
             'kelurahan_id' => $kelurahan->id,
-            'pokja_id' => isset($validated['pokja_id']) ? (int) $validated['pokja_id'] : null,
+            'pokja_id' => $pokjaId,
             'rt_id' => isset($validated['rt_id']) ? (int) $validated['rt_id'] : null,
             'nama' => $validated['nama'],
             'jenis' => $validated['jenis'],
@@ -139,6 +149,8 @@ class KegiatanController extends Controller
 
     public function show(Kegiatan $kegiatan): View
     {
+        $this->authorizePokjaRecord($kegiatan->pokja_id);
+
         $kegiatan->load([
             'kelurahan',
             'pokja',
@@ -163,6 +175,8 @@ class KegiatanController extends Controller
 
     public function edit(Kegiatan $kegiatan): View
     {
+        $this->authorizePokjaRecord($kegiatan->pokja_id);
+
         $pokjaList = Pokja::query()
             ->where('kelurahan_id', $kegiatan->kelurahan_id)
             ->orderBy('kode')
@@ -188,10 +202,15 @@ class KegiatanController extends Controller
 
     public function update(UpdateKegiatanRequest $request, Kegiatan $kegiatan): RedirectResponse
     {
+        $this->authorizePokjaRecord($kegiatan->pokja_id);
+
         $validated = $request->validated();
+        $pokjaId = isset($validated['pokja_id']) ? (int) $validated['pokja_id'] : null;
+        $pokjaId = $this->pokjaIdForKetuaPokjaWrite($pokjaId);
+        $this->authorizePokjaRecord($pokjaId);
 
         $kegiatan->update([
-            'pokja_id' => isset($validated['pokja_id']) ? (int) $validated['pokja_id'] : null,
+            'pokja_id' => $pokjaId,
             'rt_id' => isset($validated['rt_id']) ? (int) $validated['rt_id'] : null,
             'nama' => $validated['nama'],
             'jenis' => $validated['jenis'],
@@ -210,6 +229,8 @@ class KegiatanController extends Controller
 
     public function destroy(Kegiatan $kegiatan): RedirectResponse
     {
+        $this->authorizePokjaRecord($kegiatan->pokja_id);
+
         $kegiatan->delete();
 
         return redirect()->route('kegiatan.index')
@@ -243,6 +264,8 @@ class KegiatanController extends Controller
 
     public function simpanPresensi(Request $request, Kegiatan $kegiatan): RedirectResponse
     {
+        $this->authorizePokjaRecord($kegiatan->pokja_id);
+
         $peserta = $request->input('peserta', []);
         if (! is_array($peserta)) {
             return redirect()->route('kegiatan.show', $kegiatan)
@@ -292,6 +315,8 @@ class KegiatanController extends Controller
             abort(404);
         }
 
+        $this->authorizePokjaRecord($kegiatan->pokja_id);
+
         $hadir = filter_var($request->input('hadir', $presensi->hadir), FILTER_VALIDATE_BOOLEAN);
         $keterangan = $request->input('keterangan');
 
@@ -306,6 +331,8 @@ class KegiatanController extends Controller
 
     public function simpanNotulen(Request $request, Kegiatan $kegiatan): RedirectResponse
     {
+        $this->authorizePokjaRecord($kegiatan->pokja_id);
+
         $validated = $request->validate([
             'macam_rapat' => ['nullable', 'string', 'max:255'],
             'jumlah_diundang' => ['nullable', 'integer', 'min:0'],

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesPokjaScope;
 use App\Http\Requests\StoreDisposisiRequest;
 use App\Http\Requests\UpdateDisposisiRequest;
 use App\Models\AgendaSurat;
@@ -10,8 +11,12 @@ use Illuminate\Http\RedirectResponse;
 
 class DisposisiController extends Controller
 {
+    use HandlesPokjaScope;
+
     public function store(StoreDisposisiRequest $request, AgendaSurat $agendaSurat): RedirectResponse
     {
+        $this->authorizePokjaRecord($agendaSurat->pokja_id);
+
         $validated = $request->validated();
 
         $agendaSurat->disposisi()->create([
@@ -28,6 +33,9 @@ class DisposisiController extends Controller
 
     public function update(UpdateDisposisiRequest $request, Disposisi $disposisi): RedirectResponse
     {
+        $disposisi->loadMissing('agendaSurat');
+        $this->authorizePokjaRecord($disposisi->agendaSurat?->pokja_id);
+
         $validated = $request->validated();
         $payload = [
             'status' => $validated['status'],

@@ -8,11 +8,13 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Presensi extends Model
 {
     /** @use HasFactory<PresensiFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $table = 'presensi';
 
@@ -34,6 +36,14 @@ class Presensi extends Model
             'hadir' => 'boolean',
             'urut' => 'integer',
         ];
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('presensi')
+            ->logAll()
+            ->logOnlyDirty();
     }
 
     protected function namaTampil(): Attribute

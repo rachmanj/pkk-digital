@@ -16,14 +16,6 @@ class OrangTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function actingAdmin(): User
-    {
-        return User::factory()->create([
-            'email' => 'admin@pkk.test',
-            'password' => 'password',
-        ]);
-    }
-
     /**
      * @return array{kode: string, pokja: Collection<int, Pokja>}
      */

@@ -8,11 +8,13 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Disposisi extends Model
 {
     /** @use HasFactory<DisposisiFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     public const STATUS_BARU = 'baru';
 
@@ -32,6 +34,14 @@ class Disposisi extends Model
         'selesai_at',
         'oleh_user_id',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('disposisi')
+            ->logAll()
+            ->logOnlyDirty();
+    }
 
     protected function casts(): array
     {

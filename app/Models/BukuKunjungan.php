@@ -43,6 +43,7 @@ class BukuKunjungan extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
+            ->useLogName('buku_kunjungan')
             ->logAll()
             ->logOnlyDirty();
     }

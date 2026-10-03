@@ -16,14 +16,6 @@ class CetakTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function actingAdmin(): User
-    {
-        return User::factory()->create([
-            'email' => 'admin-cetak@pkk.test',
-            'password' => 'password',
-        ]);
-    }
-
     private function seedMaster(): Kelurahan
     {
         $this->seed(MasterSeeder::class);

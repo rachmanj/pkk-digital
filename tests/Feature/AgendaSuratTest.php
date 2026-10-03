@@ -16,14 +16,6 @@ class AgendaSuratTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function actingAdmin(): User
-    {
-        return User::factory()->create([
-            'email' => 'admin@pkk.test',
-            'password' => 'password',
-        ]);
-    }
-
     /**
      * @return array{kelurahan: Kelurahan, pokja: Collection<int, Pokja>}
      */
