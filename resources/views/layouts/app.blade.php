@@ -1,5 +1,17 @@
 @extends('adminlte::page')
 
+@section('meta_tags')
+    @include('partials.pwa-head')
+@endsection
+
+@section('content_top_nav_right')
+    @include('partials.pwa-install-ui')
+@endsection
+
+@section('js')
+    <script src="{{ asset('js/pwa.js') }}" defer></script>
+@endsection
+
 @section('title', $title ?? 'Buku PKK Digital')
 
 @section('content_header')
@@ -13,6 +25,7 @@
 @stop
 
 @section('content')
+    @include('partials.pwa-ios-hint')
     @include('partials.kelurahan-switcher')
     @yield('page_content')
 @stop

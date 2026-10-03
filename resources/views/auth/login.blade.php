@@ -1,5 +1,13 @@
 @extends('adminlte::auth.auth-page', ['authType' => 'login'])
 
+@section('meta_tags')
+    @include('partials.pwa-head')
+@endsection
+
+@section('js')
+    <script src="{{ asset('js/pwa.js') }}" defer></script>
+@endsection
+
 @inject('layoutHelper', 'JeroenNoten\LaravelAdminLte\Helpers\LayoutHelper')
 
 @php
@@ -11,6 +19,7 @@
 @section('auth_header', 'Masuk')
 
 @section('auth_body')
+    @include('partials.pwa-ios-hint')
     <form action="{{ $loginUrl }}" method="post">
         @csrf
 

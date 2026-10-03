@@ -2,6 +2,9 @@
 # Pasang: sudo cp nginx-host.conf.example /etc/nginx/sites-available/pkk-digital
 #         sudo ln -sf /etc/nginx/sites-available/pkk-digital /etc/nginx/sites-enabled/pkk-digital
 #         sudo nginx -t && sudo systemctl reload nginx
+#
+# Salin juga blok location PWA di bawah ke vhost HTTPS nyata (mis. pkk-digital.sbs)
+# jika file contoh ini belum dipakai langsung sebagai konfigurasi aktif.
 
 server {
     listen 80;
@@ -9,6 +12,29 @@ server {
     server_name 103.59.95.229;
 
     client_max_body_size 8M;
+
+    # Service worker & manifest: publik, tanpa login; jangan di-cache lama oleh peramban.
+    location = /sw.js {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+
+    location = /manifest.webmanifest {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+        proxy_hide_header Content-Type;
+        add_header Content-Type "application/manifest+json" always;
+    }
 
     location / {
         proxy_pass http://127.0.0.1:8080;
