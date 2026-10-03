@@ -129,6 +129,33 @@ class KegiatanTest extends TestCase
         ]);
     }
 
+    public function test_presensi_tanpa_field_hadir_dianggap_tidak_hadir(): void
+    {
+        $user = $this->actingAdmin();
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+        $kegiatan = $this->buatKegiatan($kelurahan);
+        $hadir = Orang::factory()->forKelurahan($kelurahan)->create(['nama' => 'Hadir Eksplisit']);
+        $tanpaField = Orang::factory()->forKelurahan($kelurahan)->create(['nama' => 'Tanpa Field Hadir']);
+
+        $this->actingAs($user)->post(route('kegiatan.presensi.store', $kegiatan), [
+            'peserta' => [
+                ['orang_id' => $hadir->id, 'hadir' => '1'],
+                ['orang_id' => $tanpaField->id],
+            ],
+        ])->assertRedirect(route('kegiatan.show', $kegiatan));
+
+        $this->assertDatabaseHas('presensi', [
+            'kegiatan_id' => $kegiatan->id,
+            'orang_id' => $hadir->id,
+            'hadir' => true,
+        ]);
+        $this->assertDatabaseHas('presensi', [
+            'kegiatan_id' => $kegiatan->id,
+            'orang_id' => $tanpaField->id,
+            'hadir' => false,
+        ]);
+    }
+
     public function test_satu_kegiatan_hanya_satu_notulen_simpan_dua_kali_memperbarui(): void
     {
         $user = $this->actingAdmin();

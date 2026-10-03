@@ -264,7 +264,7 @@ class KegiatanController extends Controller
                     continue;
                 }
 
-                $hadir = filter_var($row['hadir'] ?? true, FILTER_VALIDATE_BOOLEAN);
+                $hadir = filter_var($row['hadir'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
                 Presensi::query()->create([
                     'kegiatan_id' => $kegiatan->id,

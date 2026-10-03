@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AgendaSuratController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BukuKunjunganController;
+use App\Http\Controllers\BukuTamuController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisposisiController;
 use App\Http\Controllers\KegiatanController;
@@ -44,6 +46,9 @@ Route::middleware('auth')->group(function () {
     Route::put('disposisi/{disposisi}', [DisposisiController::class, 'update'])
         ->name('disposisi.update');
     Route::resource('agenda-surat', AgendaSuratController::class);
+
+    Route::resource('buku-tamu', BukuTamuController::class);
+    Route::resource('buku-kunjungan', BukuKunjunganController::class);
 
     Route::get('kegiatan/cari-orang', [KegiatanController::class, 'cariOrang'])
         ->name('kegiatan.cari-orang');

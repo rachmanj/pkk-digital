@@ -39,6 +39,20 @@ class ConfigureAdminLteMenu
             'icon' => 'bi bi-calendar-event',
             'active' => ['kegiatan*'],
         ]);
+
+        $event->menu->add([
+            'text' => 'Buku Tamu',
+            'url' => 'buku-tamu',
+            'icon' => 'bi bi-book',
+            'active' => ['buku-tamu*'],
+        ]);
+
+        $event->menu->add([
+            'text' => 'Buku Kunjungan',
+            'url' => 'buku-kunjungan',
+            'icon' => 'bi bi-geo-alt',
+            'active' => ['buku-kunjungan*'],
+        ]);
     }
 
     private function resetMenu(Builder $builder): void
