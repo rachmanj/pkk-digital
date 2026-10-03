@@ -7,3 +7,14 @@ tests
 phpunit.xml
 .phpunit.result.cache
 .phpunit.cache
+
+*.tar.gz
+*.tar
+.hermes
+docs/source
+storage/framework/cache
+storage/framework/sessions
+storage/framework/views
+storage/app/private
+bootstrap/cache/*
+!bootstrap/cache/.gitignore
