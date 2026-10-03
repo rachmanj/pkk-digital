@@ -23,6 +23,8 @@ class KasTutupBuku extends Model
         'sisa_tunai',
         'total',
         'catatan',
+        'nama_ketua',
+        'nama_bendahara',
         'ditutup_oleh',
     ];
 

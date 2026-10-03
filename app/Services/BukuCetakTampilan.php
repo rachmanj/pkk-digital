@@ -168,6 +168,21 @@ class BukuCetakTampilan
                 'tujuan' => 14,
                 'tanda_tangan' => 10,
             ],
+            'kas_pokja' => [
+                'no' => 5,
+                'tanggal' => 10,
+                'uraian_pemasukan' => 28,
+                'uraian_pengeluaran' => 28,
+                'jumlah' => 12,
+            ],
+            'kas_tabungan' => [
+                'no' => 4,
+                'tanggal_bulan_tahun' => 14,
+                'sumber_dana' => 12,
+                'uraian' => 22,
+                'nomor_bukti_kas' => 12,
+                'jumlah_penerimaan' => 12,
+            ],
             'buku_kunjungan' => [
                 'no' => 4,
                 'tanggal' => 8,

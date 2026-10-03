@@ -10,10 +10,14 @@ use App\Exports\BukuTamuExport;
 use App\Exports\DaftarAnggotaExport;
 use App\Exports\DaftarAnggotaTpPkkExport;
 use App\Exports\DaftarHadirExport;
+use App\Exports\KasPokjaExport;
+use App\Exports\KasTabunganExport;
 use App\Exports\NotulenExport;
 use App\Http\Controllers\Concerns\HandlesPokjaScope;
+use App\Models\KasTutupBuku;
 use App\Services\BukuCetakService;
 use App\Services\BukuCetakTampilan;
+use App\Support\PkkPermission;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -36,7 +40,12 @@ class CetakController extends Controller
         'daftar_anggota_tp_pkk' => DaftarAnggotaTpPkkExport::class,
         'buku_tamu' => BukuTamuExport::class,
         'buku_kunjungan' => BukuKunjunganExport::class,
+        'kas_pokja' => KasPokjaExport::class,
+        'kas_tabungan' => KasTabunganExport::class,
     ];
+
+    /** @var list<string> */
+    private const KAS_BUKU = ['kas_pokja', 'kas_tabungan'];
 
     public function __construct(
         private BukuCetakService $bukuCetakService,
@@ -47,9 +56,7 @@ class CetakController extends Controller
     {
         $dataset = $this->dataset($buku, $request);
 
-        $view = $dataset['tipe'] === 'notulen'
-            ? 'cetak.notulen'
-            : 'cetak.tabel';
+        $view = $this->viewUntukDataset($dataset);
 
         return view($view, [
             'dataset' => $dataset,
@@ -62,9 +69,7 @@ class CetakController extends Controller
     {
         $dataset = $this->dataset($buku, $request);
 
-        $view = $dataset['tipe'] === 'notulen'
-            ? 'cetak.notulen'
-            : 'cetak.tabel';
+        $view = $this->viewUntukDataset($dataset);
 
         $tampilan = $this->bukuCetakTampilan->untukKode($buku);
 
@@ -103,10 +108,75 @@ class CetakController extends Controller
             abort(404);
         }
 
+        $this->authorizeAksesCetak($buku);
+
         $filter = $this->filterDariRequest($request);
         $this->authorizeCetakPokja($buku, $filter);
 
-        return $this->bukuCetakService->data($buku, $filter);
+        $dataset = $this->bukuCetakService->data($buku, $filter);
+
+        $tutupBukuId = isset($filter['tutup_buku']) && $filter['tutup_buku'] !== ''
+            ? (int) $filter['tutup_buku']
+            : null;
+
+        if ($buku === 'kas_tabungan' && $tutupBukuId !== null) {
+            $dataset['tutup_buku'] = $this->muatTutupBukuUntukCetak($tutupBukuId);
+        }
+
+        return $dataset;
+    }
+
+    private function authorizeAksesCetak(string $buku): void
+    {
+        $user = auth()->user();
+        if ($user === null) {
+            abort(403);
+        }
+
+        if (in_array($buku, self::KAS_BUKU, true)) {
+            if (! $user->can(PkkPermission::LIHAT_KAS) && ! $user->can(PkkPermission::KELOLA_KAS)) {
+                abort(403);
+            }
+
+            return;
+        }
+
+        if (! $user->can(PkkPermission::LIHAT_BUKU) && ! $user->can(PkkPermission::VERIFIKASI_BUKU)) {
+            abort(403);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $dataset
+     */
+    private function viewUntukDataset(array $dataset): string
+    {
+        if (isset($dataset['tutup_buku']) && $dataset['tutup_buku'] !== null) {
+            return 'cetak.kas_tutup_bukti';
+        }
+
+        if (($dataset['tipe'] ?? '') === 'notulen') {
+            return 'cetak.notulen';
+        }
+
+        if (($dataset['tipe'] ?? '') === 'kas_tabungan') {
+            return 'cetak.kas_tabungan';
+        }
+
+        return 'cetak.tabel';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function muatTutupBukuUntukCetak(int $id): array
+    {
+        $record = KasTutupBuku::query()->findOrFail($id);
+        $this->authorizePokjaBukuFilter($record->pokja_id);
+
+        return [
+            'record' => $record,
+        ];
     }
 
     /**
@@ -114,6 +184,16 @@ class CetakController extends Controller
      */
     private function authorizeCetakPokja(string $buku, array $filter): void
     {
+        if (in_array($buku, self::KAS_BUKU, true)) {
+            $pokjaId = $filter['pokja_id'] ?? null;
+            if ($pokjaId === null && isset($filter['buku']) && is_string($filter['buku']) && str_starts_with($filter['buku'], 'pokja-')) {
+                $pokjaId = (int) substr($filter['buku'], 6);
+            }
+            $this->authorizePokjaBukuFilter($pokjaId);
+
+            return;
+        }
+
         if ($this->ketuaPokjaPokjaId() === null) {
             return;
         }
@@ -135,7 +215,7 @@ class CetakController extends Controller
      */
     private function filterDariRequest(Request $request): array
     {
-        return $request->only(['tahun', 'dari', 'sampai', 'pokja_id', 'kegiatan', 'buku']);
+        return $request->only(['tahun', 'dari', 'sampai', 'pokja_id', 'kegiatan', 'buku', 'tutup_buku']);
     }
 
     private function namaBerkas(string $buku, int|string $tahun, string $ext): string

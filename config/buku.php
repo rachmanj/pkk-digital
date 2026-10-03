@@ -151,6 +151,36 @@ return [
         ],
     ],
 
+    'kas_pokja' => [
+        'judul' => 'Buku Keuangan / Kas',
+        'tipe' => 'tabel',
+        'tanda_tangan' => [
+            ['peran' => 'Ketua Pokja'],
+            ['peran' => 'Bendahara'],
+        ],
+        'kolom' => [
+            ['label' => 'NO', 'key' => 'no'],
+            ['label' => 'TANGGAL', 'key' => 'tanggal'],
+            ['label' => 'URAIAN PEMASUKAN', 'key' => 'uraian_pemasukan'],
+            ['label' => 'URAIAN PENGELUARAN', 'key' => 'uraian_pengeluaran'],
+            ['label' => 'JUMLAH', 'key' => 'jumlah'],
+        ],
+    ],
+
+    'kas_tabungan' => [
+        'judul' => 'Buku Tabungan / Kas Umum',
+        'tipe' => 'kas_tabungan',
+        'tanda_tangan' => [],
+        'kolom' => [
+            ['label' => 'NO', 'key' => 'no'],
+            ['label' => 'TANGGAL BULAN TAHUN', 'key' => 'tanggal_bulan_tahun'],
+            ['label' => 'SUMBER DANA', 'key' => 'sumber_dana'],
+            ['label' => 'URAIAN', 'key' => 'uraian'],
+            ['label' => 'NOMOR BUKTI KAS', 'key' => 'nomor_bukti_kas'],
+            ['label' => 'JUMLAH PENERIMAAN (Rp)', 'key' => 'jumlah_penerimaan'],
+        ],
+    ],
+
     'buku_kunjungan' => [
         'judul' => 'Buku Kunjungan',
         'tipe' => 'tabel',

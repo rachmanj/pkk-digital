@@ -5,14 +5,18 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HandlesPokjaScope;
 use App\Http\Requests\StoreKasSaldoAwalRequest;
 use App\Http\Requests\StoreKasTransaksiRequest;
+use App\Http\Requests\StoreKasTutupBukuRequest;
 use App\Http\Requests\UpdateKasTransaksiRequest;
 use App\Models\KasSaldoAwal;
 use App\Models\KasTransaksi;
+use App\Models\KasTutupBuku;
 use App\Models\Kelurahan;
 use App\Models\Pokja;
 use App\Services\KasService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 class KasController extends Controller
@@ -85,6 +89,20 @@ class KasController extends Controller
             ? $this->kasService->saldoAwal($kelurahan->id, $pokjaIdFilter, $tahun, KasTransaksi::POS_BANK)
             : 0;
 
+        $tutupBukuRiwayat = $kelurahan
+            ? KasTutupBuku::query()
+                ->where('kelurahan_id', $kelurahan->id)
+                ->tahun($tahun)
+                ->when(
+                    $pokjaIdFilter,
+                    fn ($q) => $q->where('pokja_id', $pokjaIdFilter),
+                    fn ($q) => $q->whereNull('pokja_id')
+                )
+                ->orderByDesc('tanggal_tutup')
+                ->orderByDesc('id')
+                ->get()
+            : collect();
+
         return view('kas.index', [
             'transaksi' => $transaksi,
             'kelurahan' => $kelurahan,
@@ -101,7 +119,122 @@ class KasController extends Controller
                 'bulan' => $bulan !== null && $bulan !== '' ? (int) $bulan : '',
                 'q' => $search,
             ],
+            'tutupBukuRiwayat' => $tutupBukuRiwayat,
         ]);
+    }
+
+    public function rekap(Request $request): View
+    {
+        $context = $this->rekapContext($request);
+
+        return view('kas.rekap', $context);
+    }
+
+    public function rekapPdf(Request $request): Response
+    {
+        $context = $this->rekapContext($request);
+        $html = view('kas.rekap-pdf', $context)->render();
+        $filename = sprintf('rekap-kas-%s-%s.pdf', $context['filters']['buku'], $context['filters']['tahun']);
+
+        return Pdf::loadHTML($html)->setPaper('folio', 'portrait')->download($filename);
+    }
+
+    public function storeTutupBuku(StoreKasTutupBukuRequest $request): RedirectResponse
+    {
+        $kelurahan = $this->activeKelurahan();
+        if ($kelurahan === null) {
+            return redirect()->route('kas.index')
+                ->with('error', 'Kelurahan aktif tidak ditemukan.');
+        }
+
+        $validated = $request->validated();
+        $pokjaId = $this->pokjaIdFromBukuParam($validated['buku']);
+        $this->authorizePokjaRecord($pokjaId);
+
+        $tahun = (int) $validated['tahun'];
+        $sisaBank = $this->kasService->saldoAkhir($kelurahan->id, $pokjaId, $tahun, KasTransaksi::POS_BANK);
+        $sisaTunai = $this->kasService->saldoAkhir($kelurahan->id, $pokjaId, $tahun, KasTransaksi::POS_TUNAI);
+
+        KasTutupBuku::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => $pokjaId,
+            'tahun' => $tahun,
+            'tanggal_tutup' => $validated['tanggal_tutup'],
+            'sisa_bank' => $sisaBank,
+            'sisa_tunai' => $sisaTunai,
+            'total' => $sisaBank + $sisaTunai,
+            'catatan' => $validated['catatan'] ?? null,
+            'nama_ketua' => $validated['nama_ketua'] ?? null,
+            'nama_bendahara' => $validated['nama_bendahara'] ?? null,
+            'ditutup_oleh' => $request->user()?->id,
+        ]);
+
+        return redirect()->route('kas.index', [
+            'buku' => $validated['buku'],
+            'tahun' => $tahun,
+        ])->with('success', 'Buku kas berhasil ditutup.');
+    }
+
+    public function destroyTutupBuku(KasTutupBuku $kasTutupBuku): RedirectResponse
+    {
+        $this->authorizePokjaRecord($kasTutupBuku->pokja_id);
+
+        $buku = $kasTutupBuku->pokja_id ? 'pokja-'.$kasTutupBuku->pokja_id : 'kelurahan';
+        $tahun = $kasTutupBuku->tahun;
+
+        $kasTutupBuku->delete();
+
+        return redirect()->route('kas.index', [
+            'buku' => $buku,
+            'tahun' => $tahun,
+        ])->with('success', 'Riwayat tutup buku dihapus.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function rekapContext(Request $request): array
+    {
+        $kelurahan = $this->activeKelurahan();
+        $pokjaList = $kelurahan
+            ? Pokja::query()->where('kelurahan_id', $kelurahan->id)->orderBy('kode')->get()
+            : collect();
+
+        $tahun = (int) $request->input('tahun', now()->year);
+        $buku = $request->string('buku')->toString();
+        if ($buku === '') {
+            $buku = $this->defaultBukuForKetuaPokja();
+        }
+        $pokjaIdFilter = $this->pokjaIdFromBukuParam($buku);
+        $this->authorizePokjaBukuFilter($pokjaIdFilter);
+
+        $rekap = $kelurahan
+            ? $this->kasService->rekapBulanan($kelurahan->id, $pokjaIdFilter, $tahun)
+            : [];
+
+        $totalMasuk = array_sum(array_column($rekap, 'masuk'));
+        $totalKeluar = array_sum(array_column($rekap, 'keluar'));
+        $saldoAkhir = $rekap !== [] ? $rekap[array_key_last($rekap)]['saldo_akhir'] : 0.0;
+
+        $judulBuku = $buku === 'kelurahan'
+            ? 'Kelurahan'
+            : 'Pokja '.($pokjaList->firstWhere('id', $pokjaIdFilter)?->kode ?? '');
+
+        return [
+            'kelurahan' => $kelurahan,
+            'pokjaList' => $pokjaList,
+            'rekap' => $rekap,
+            'total' => [
+                'masuk' => $totalMasuk,
+                'keluar' => $totalKeluar,
+                'saldo_akhir' => $saldoAkhir,
+            ],
+            'judulBuku' => $judulBuku,
+            'filters' => [
+                'tahun' => $tahun,
+                'buku' => $buku,
+            ],
+        ];
     }
 
     public function create(Request $request): View

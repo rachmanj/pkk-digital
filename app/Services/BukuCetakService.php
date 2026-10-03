@@ -5,12 +5,15 @@ namespace App\Services;
 use App\Models\AgendaSurat;
 use App\Models\BukuKunjungan;
 use App\Models\BukuTamu;
+use App\Models\KasTransaksi;
 use App\Models\Keanggotaan;
 use App\Models\Kegiatan;
 use App\Models\Kelurahan;
 use App\Models\Notulen;
 use App\Models\Orang;
 use App\Models\Presensi;
+use App\Support\FormatTanggalIndonesia;
+use App\Support\FormatUang;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -62,8 +65,14 @@ class BukuCetakService
             'daftar_anggota_tp_pkk' => $this->barisDaftarAnggotaTpPkk($filter, $kelurahan),
             'buku_tamu' => $this->barisBukuTamu($filter, $kelurahan),
             'buku_kunjungan' => $this->barisBukuKunjungan($filter, $kelurahan),
+            'kas_pokja' => $this->barisKasPokja($filter, $kelurahan),
+            'kas_tabungan' => $this->barisKasTabungan($filter, $kelurahan),
             default => [],
         };
+
+        if ($kodeBuku === 'kas_tabungan') {
+            $payload['total_penerimaan'] = $this->totalPenerimaanKasTabungan($filter, $kelurahan);
+        }
 
         return $payload;
     }
@@ -92,6 +101,10 @@ class BukuCetakService
             ? (int) $filter['kegiatan']
             : null;
 
+        $tutupBukuId = isset($filter['tutup_buku']) && $filter['tutup_buku'] !== ''
+            ? (int) $filter['tutup_buku']
+            : null;
+
         return [
             'tahun' => $tahun,
             'dari' => $this->parseTanggal($filter['dari'] ?? null),
@@ -99,6 +112,7 @@ class BukuCetakService
             'pokja_id' => $pokjaId,
             'kegiatan' => $kegiatanId,
             'buku' => $buku,
+            'tutup_buku' => $tutupBukuId,
         ];
     }
 
@@ -510,5 +524,122 @@ class BukuCetakService
     public static function kodeTerdaftar(string $kode): bool
     {
         return Arr::has(config('buku'), $kode);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filter
+     * @return list<array{cells: array<string, string>}>
+     */
+    private function barisKasPokja(array $filter, ?Kelurahan $kelurahan): array
+    {
+        if ($filter['pokja_id'] === null) {
+            return [];
+        }
+
+        $query = KasTransaksi::query()
+            ->tahun($filter['tahun'])
+            ->where('pokja_id', $filter['pokja_id'])
+            ->orderBy('tanggal')
+            ->orderBy('id');
+
+        if ($kelurahan) {
+            $query->where('kelurahan_id', $kelurahan->id);
+        }
+
+        $this->terapkanRentangTanggal($query, 'tanggal', $filter);
+
+        $baris = [];
+        $no = 1;
+        foreach ($query->get() as $transaksi) {
+            $baris[] = [
+                'cells' => [
+                    'no' => (string) $no,
+                    'tanggal' => $this->formatTanggal($transaksi->tanggal),
+                    'uraian_pemasukan' => $transaksi->jenis === KasTransaksi::JENIS_MASUK
+                        ? (string) $transaksi->uraian
+                        : '—',
+                    'uraian_pengeluaran' => $transaksi->jenis === KasTransaksi::JENIS_KELUAR
+                        ? (string) $transaksi->uraian
+                        : '—',
+                    'jumlah' => FormatUang::rupiah($transaksi->jumlah),
+                ],
+            ];
+            $no++;
+        }
+
+        return $baris;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filter
+     * @return list<array{cells: array<string, string>}>
+     */
+    private function barisKasTabungan(array $filter, ?Kelurahan $kelurahan): array
+    {
+        $query = KasTransaksi::query()
+            ->tahun($filter['tahun'])
+            ->whereNull('pokja_id')
+            ->orderBy('tanggal')
+            ->orderBy('id');
+
+        if ($kelurahan) {
+            $query->where('kelurahan_id', $kelurahan->id);
+        }
+
+        $this->terapkanRentangTanggal($query, 'tanggal', $filter);
+
+        $baris = [];
+        $no = 1;
+        foreach ($query->get() as $transaksi) {
+            $nominal = (float) $transaksi->jumlah;
+            if ($transaksi->jenis === KasTransaksi::JENIS_KELUAR) {
+                $nominal = -$nominal;
+            }
+
+            $baris[] = [
+                'cells' => [
+                    'no' => (string) $no,
+                    'tanggal_bulan_tahun' => FormatTanggalIndonesia::tanggalBulanTahun($transaksi->tanggal),
+                    'sumber_dana' => $transaksi->jenis === KasTransaksi::JENIS_MASUK
+                        ? ($transaksi->sumber_dana ?: '—')
+                        : '—',
+                    'uraian' => (string) $transaksi->uraian,
+                    'nomor_bukti_kas' => $transaksi->no_bukti ?: '—',
+                    'jumlah_penerimaan' => $this->formatAngkaKasTabungan($nominal),
+                ],
+            ];
+            $no++;
+        }
+
+        return $baris;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filter
+     */
+    private function totalPenerimaanKasTabungan(array $filter, ?Kelurahan $kelurahan): float
+    {
+        $query = KasTransaksi::query()
+            ->tahun($filter['tahun'])
+            ->whereNull('pokja_id')
+            ->where('jenis', KasTransaksi::JENIS_MASUK);
+
+        if ($kelurahan) {
+            $query->where('kelurahan_id', $kelurahan->id);
+        }
+
+        $this->terapkanRentangTanggal($query, 'tanggal', $filter);
+
+        return (float) $query->sum('jumlah');
+    }
+
+    private function formatAngkaKasTabungan(float $nilai): string
+    {
+        $formatted = number_format(abs($nilai), 0, ',', '.');
+        if ($nilai < 0) {
+            return '-'.$formatted;
+        }
+
+        return $formatted;
     }
 }

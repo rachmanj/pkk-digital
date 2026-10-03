@@ -2,13 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Exports\KasTabunganExport;
 use App\Models\KasSaldoAwal;
 use App\Models\KasTransaksi;
+use App\Models\KasTutupBuku;
 use App\Models\Kelurahan;
 use App\Models\Pokja;
 use App\Services\KasService;
 use Database\Seeders\MasterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
 
 class KasTest extends TestCase
@@ -319,6 +322,241 @@ class KasTest extends TestCase
         $this->seedMaster();
 
         $this->get(route('kas.index'))->assertRedirect(route('login'));
+    }
+
+    public function test_bukti_tutup_buku_snapshot_tidak_berubah_setelah_transaksi_baru(): void
+    {
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+        $service = app(KasService::class);
+        $bendahara = $this->userForRole('bendahara', ['email' => 'bend-tutup@pkk.test']);
+
+        KasSaldoAwal::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'pos' => KasSaldoAwal::POS_TUNAI,
+            'jumlah' => 100000,
+        ]);
+
+        $this->actingAs($bendahara)->post(route('kas.tutup-buku.store'), [
+            'buku' => 'kelurahan',
+            'tahun' => 2026,
+            'tanggal_tutup' => '2026-06-30',
+            'nama_ketua' => 'Ibu Ketua',
+            'nama_bendahara' => 'Ibu Bendahara',
+        ])->assertRedirect();
+
+        $tutup = KasTutupBuku::query()->firstOrFail();
+        $this->assertEqualsWithDelta(
+            $service->saldoAkhir($kelurahan->id, null, 2026, KasTransaksi::POS_TUNAI),
+            (float) $tutup->sisa_tunai,
+            0.001
+        );
+
+        KasTransaksi::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'jenis' => KasTransaksi::JENIS_MASUK,
+            'pos' => KasTransaksi::POS_TUNAI,
+            'tanggal' => '2026-07-01',
+            'uraian' => 'Setelah tutup',
+            'jumlah' => 50000,
+        ]);
+
+        $tutup->refresh();
+        $this->assertEqualsWithDelta(100000.0, (float) $tutup->sisa_tunai, 0.001);
+        $this->assertNotEquals(
+            $service->saldoAkhir($kelurahan->id, null, 2026, KasTransaksi::POS_TUNAI),
+            (float) $tutup->sisa_tunai
+        );
+    }
+
+    public function test_hanya_kelola_kas_boleh_tutup_dan_hapus_riwayat_tutup_buku(): void
+    {
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+        $bendahara = $this->userForRole('bendahara', ['email' => 'bend-del@pkk.test']);
+        $ketua = $this->userForRole('ketua', ['email' => 'ketua-tutup@pkk.test']);
+
+        $tutup = KasTutupBuku::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'tanggal_tutup' => '2026-01-01',
+            'sisa_bank' => 0,
+            'sisa_tunai' => 0,
+            'total' => 0,
+        ]);
+
+        $this->actingAs($ketua)->post(route('kas.tutup-buku.store'), [
+            'buku' => 'kelurahan',
+            'tahun' => 2026,
+            'tanggal_tutup' => '2026-02-01',
+        ])->assertForbidden();
+
+        $this->actingAs($ketua)->delete(route('kas.tutup-buku.destroy', $tutup))->assertForbidden();
+
+        $this->actingAs($bendahara)->delete(route('kas.tutup-buku.destroy', $tutup))->assertRedirect();
+        $this->assertDatabaseMissing('kas_tutup_buku', ['id' => $tutup->id]);
+    }
+
+    public function test_kader_ditolak_403_pada_semua_rute_kas(): void
+    {
+        $this->seedMaster();
+        $kader = $this->userForRole('kader', ['email' => 'kader-all@pkk.test']);
+
+        $this->actingAs($kader)->get(route('kas.index'))->assertForbidden();
+        $this->actingAs($kader)->get(route('kas.rekap'))->assertForbidden();
+        $this->actingAs($kader)->get(route('kas.rekap.pdf'))->assertForbidden();
+        $this->actingAs($kader)->post(route('kas.tutup-buku.store'), [
+            'buku' => 'kelurahan',
+            'tahun' => 2026,
+            'tanggal_tutup' => '2026-01-01',
+        ])->assertForbidden();
+        $this->actingAs($kader)->get(route('cetak.show', ['buku' => 'kas_tabungan']).'?tahun=2026&buku=kelurahan')
+            ->assertForbidden();
+    }
+
+    public function test_ketua_pokja_cetak_kas_kelurahan_dan_pokjanya_403_pokja_lain(): void
+    {
+        ['pokjaI' => $pokjaI, 'pokjaIi' => $pokjaIi] = $this->seedMaster();
+        $ketuaPokja = $this->userForRole('ketua_pokja', [
+            'email' => 'kp-cetak@pkk.test',
+            'pokja_id' => $pokjaI->id,
+        ]);
+
+        $queryKelurahan = http_build_query(['tahun' => 2026, 'buku' => 'kelurahan']);
+        $queryPokjaI = http_build_query(['tahun' => 2026, 'buku' => 'pokja-'.$pokjaI->id]);
+        $queryPokjaIi = http_build_query(['tahun' => 2026, 'buku' => 'pokja-'.$pokjaIi->id]);
+
+        $this->actingAs($ketuaPokja)->get(route('cetak.show', ['buku' => 'kas_tabungan']).'?'.$queryKelurahan)->assertOk();
+        $this->actingAs($ketuaPokja)->get(route('cetak.show', ['buku' => 'kas_pokja']).'?'.$queryPokjaI)->assertOk();
+        $this->actingAs($ketuaPokja)->get(route('cetak.show', ['buku' => 'kas_pokja']).'?'.$queryPokjaIi)->assertForbidden();
+    }
+
+    public function test_halaman_cetak_kas_pokja_memuat_label_pemasukan_dan_pengeluaran(): void
+    {
+        $this->seedMaster();
+        $sekretaris = $this->userForRole('sekretaris', ['email' => 'sek-cetak-pokja@pkk.test']);
+        $query = http_build_query(['tahun' => 2026, 'buku' => 'kelurahan']);
+
+        $response = $this->actingAs($sekretaris)->get(route('cetak.show', ['buku' => 'kas_pokja']).'?'.$query);
+        $response->assertOk();
+        $response->assertSee('URAIAN PEMASUKAN', false);
+        $response->assertSee('URAIAN PENGELUARAN', false);
+    }
+
+    public function test_halaman_cetak_kas_tabungan_bukti_tutup_memuat_label_resmi(): void
+    {
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+        $ketua = $this->userForRole('ketua', ['email' => 'ketua-bukti@pkk.test']);
+
+        $tutup = KasTutupBuku::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'tanggal_tutup' => '2026-12-31',
+            'sisa_bank' => 1000,
+            'sisa_tunai' => 2000,
+            'total' => 3000,
+            'nama_ketua' => 'Ketua Test',
+            'nama_bendahara' => 'Bendahara Test',
+        ]);
+
+        $query = http_build_query([
+            'tahun' => 2026,
+            'buku' => 'kelurahan',
+            'tutup_buku' => $tutup->id,
+        ]);
+
+        $response = $this->actingAs($ketua)->get(route('cetak.show', ['buku' => 'kas_tabungan']).'?'.$query);
+        $response->assertOk();
+        $response->assertSee('Buku Kas Umum ditutup dengan keadaan sebagai berikut', false);
+        $response->assertSee('Sisa Bank', false);
+        $response->assertSee('Sisa Kas/Tunai', false);
+        $response->assertSee('Ketua Umum/Ketua', false);
+        $response->assertSee('Bendahara', false);
+        $response->assertSee('Ketua Test', false);
+        $response->assertSee('Bendahara Test', false);
+    }
+
+    public function test_export_excel_kas_memuat_urutan_header_config(): void
+    {
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+        $sekretaris = $this->userForRole('sekretaris', ['email' => 'sek-export@pkk.test']);
+
+        KasTransaksi::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'jenis' => KasTransaksi::JENIS_MASUK,
+            'pos' => KasTransaksi::POS_TUNAI,
+            'tanggal' => '2026-01-15',
+            'sumber_dana' => 'Iuran',
+            'uraian' => 'Test export',
+            'no_bukti' => 'BK-99',
+            'jumlah' => 10000,
+        ]);
+
+        Excel::fake();
+
+        $query = http_build_query(['tahun' => 2026, 'buku' => 'kelurahan']);
+        $this->actingAs($sekretaris)->get(route('export.buku', ['buku' => 'kas_tabungan']).'?'.$query)->assertOk();
+
+        Excel::assertDownloaded('kas_tabungan-2026.xlsx', function (KasTabunganExport $export) {
+            $expected = array_column(config('buku.kas_tabungan.kolom'), 'label');
+            $this->assertSame($expected, $export->headings());
+
+            return true;
+        });
+    }
+
+    public function test_rute_cetak_pdf_kas_mengembalikan_application_pdf(): void
+    {
+        $this->seedMaster();
+        $sekretaris = $this->userForRole('sekretaris', ['email' => 'sek-pdf@pkk.test']);
+        $query = http_build_query(['tahun' => 2026, 'buku' => 'kelurahan']);
+
+        $response = $this->actingAs($sekretaris)->get(route('cetak.pdf', ['buku' => 'kas_tabungan']).'?'.$query);
+        $response->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $response->headers->get('content-type'));
+    }
+
+    public function test_halaman_rekap_bulanan_web_dan_saldo_berjalan(): void
+    {
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+        $sekretaris = $this->userForRole('sekretaris', ['email' => 'sek-rekap@pkk.test']);
+
+        KasSaldoAwal::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'pos' => KasSaldoAwal::POS_TUNAI,
+            'jumlah' => 10000,
+        ]);
+        KasTransaksi::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'pokja_id' => null,
+            'tahun' => 2026,
+            'jenis' => KasTransaksi::JENIS_MASUK,
+            'pos' => KasTransaksi::POS_TUNAI,
+            'tanggal' => '2026-04-10',
+            'uraian' => 'April',
+            'jumlah' => 5000,
+        ]);
+
+        $response = $this->actingAs($sekretaris)->get(route('kas.rekap', [
+            'tahun' => 2026,
+            'buku' => 'kelurahan',
+        ]));
+        $response->assertOk();
+        $response->assertSee('April', false);
+        $response->assertSee('Rp 5.000', false);
+        $response->assertSee('Rp 15.000', false);
+
+        $rekap = app(KasService::class)->rekapBulanan($kelurahan->id, null, 2026);
+        $this->assertSame(5000.0, $rekap[3]['masuk']);
+        $this->assertSame(15000.0, $rekap[3]['saldo_akhir']);
     }
 
     public function test_halaman_crud_200_untuk_pengguna_berhak(): void

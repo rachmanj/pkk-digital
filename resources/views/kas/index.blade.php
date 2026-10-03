@@ -127,13 +127,112 @@
         </div>
     @endcan
 
+    @php
+        $cetakQuery = http_build_query([
+            'tahun' => $filters['tahun'],
+            'buku' => $filters['buku'],
+        ]);
+        $kodeCetakBuku = $filters['buku'] === 'kelurahan' ? 'kas_tabungan' : 'kas_pokja';
+    @endphp
+
     <div class="d-flex flex-wrap gap-2 mb-3">
         @can(\App\Support\PkkPermission::KELOLA_KAS)
             <a href="{{ route('kas.create', ['buku' => $filters['buku']]) }}" class="btn btn-success btn-sm">
                 <i class="bi bi-plus-lg"></i> Tambah transaksi
             </a>
         @endcan
+        <a href="{{ route('cetak.show', ['buku' => $kodeCetakBuku]).'?'.$cetakQuery }}" class="btn btn-outline-secondary btn-sm">Cetak buku</a>
+        <a href="{{ route('cetak.pdf', ['buku' => $kodeCetakBuku]).'?'.$cetakQuery }}" class="btn btn-outline-secondary btn-sm">PDF buku</a>
+        <a href="{{ route('export.buku', ['buku' => $kodeCetakBuku]).'?'.$cetakQuery }}" class="btn btn-outline-secondary btn-sm">Export Excel</a>
+        <a href="{{ route('kas.rekap', ['tahun' => $filters['tahun'], 'buku' => $filters['buku']]) }}" class="btn btn-outline-primary btn-sm">Rekap bulanan</a>
     </div>
+
+    @can(\App\Support\PkkPermission::KELOLA_KAS)
+        <div class="card mb-3">
+            <div class="card-header py-2">Tutup buku tahun {{ $filters['tahun'] }}</div>
+            <div class="card-body">
+                <form method="post" action="{{ route('kas.tutup-buku.store') }}" class="row g-2 align-items-end">
+                    @csrf
+                    <input type="hidden" name="buku" value="{{ $filters['buku'] }}">
+                    <input type="hidden" name="tahun" value="{{ $filters['tahun'] }}">
+                    <div class="col-md-2">
+                        <label class="form-label" for="tanggal_tutup">Tanggal tutup</label>
+                        <input type="date" name="tanggal_tutup" id="tanggal_tutup" class="form-control form-control-sm"
+                            value="{{ old('tanggal_tutup', now()->toDateString()) }}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="nama_ketua">Nama ketua</label>
+                        <input type="text" name="nama_ketua" id="nama_ketua" class="form-control form-control-sm"
+                            value="{{ old('nama_ketua') }}" maxlength="255">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="nama_bendahara">Nama bendahara</label>
+                        <input type="text" name="nama_bendahara" id="nama_bendahara" class="form-control form-control-sm"
+                            value="{{ old('nama_bendahara') }}" maxlength="255">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="catatan">Catatan</label>
+                        <input type="text" name="catatan" id="catatan" class="form-control form-control-sm"
+                            value="{{ old('catatan') }}" maxlength="2000">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-warning btn-sm">Tutup buku</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endcan
+
+    @if ($tutupBukuRiwayat->isNotEmpty())
+        <div class="card mb-3">
+            <div class="card-header py-2">Riwayat tutup buku</div>
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tanggal tutup</th>
+                            <th>Sisa bank</th>
+                            <th>Sisa tunai</th>
+                            <th>Total</th>
+                            <th>Ketua / Bendahara</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($tutupBukuRiwayat as $riwayat)
+                            @php
+                                $buktiQuery = http_build_query([
+                                    'tahun' => $filters['tahun'],
+                                    'buku' => $filters['buku'],
+                                    'tutup_buku' => $riwayat->id,
+                                ]);
+                            @endphp
+                            <tr>
+                                <td>{{ $riwayat->tanggal_tutup?->format('d/m/Y') }}</td>
+                                <td>{{ FormatUang::rupiah($riwayat->sisa_bank) }}</td>
+                                <td>{{ FormatUang::rupiah($riwayat->sisa_tunai) }}</td>
+                                <td>{{ FormatUang::rupiah($riwayat->total) }}</td>
+                                <td class="small">
+                                    {{ $riwayat->nama_ketua ?: '—' }} / {{ $riwayat->nama_bendahara ?: '—' }}
+                                </td>
+                                <td class="text-nowrap">
+                                    <a href="{{ route('cetak.show', ['buku' => 'kas_tabungan']).'?'.$buktiQuery }}" class="btn btn-outline-secondary btn-sm">Cetak bukti</a>
+                                    @can(\App\Support\PkkPermission::KELOLA_KAS)
+                                        <form method="post" action="{{ route('kas.tutup-buku.destroy', $riwayat) }}" class="d-inline"
+                                            onsubmit="return confirm('Hapus riwayat tutup buku ini?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Hapus</button>
+                                        </form>
+                                    @endcan
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
 
     <div class="card">
         <div class="card-body p-0 table-responsive">
