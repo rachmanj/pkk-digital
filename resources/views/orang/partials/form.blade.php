@@ -92,7 +92,10 @@
     if ($keanggotaanItems === null && $orangModel) {
         $keanggotaanItems = $orangModel->keanggotaan->map(fn ($k) => $k->only([
             'id', 'jenis', 'pokja_id', 'jabatan', 'no_registrasi', 'sk_nomor', 'mulai', 'selesai', 'is_aktif',
-        ]))->all();
+        ]))->values()->all();
+    }
+    if (is_array($keanggotaanItems)) {
+        $keanggotaanItems = array_values($keanggotaanItems);
     }
     if (empty($keanggotaanItems)) {
         $keanggotaanItems = [['jenis' => '', 'is_aktif' => true]];
@@ -102,7 +105,7 @@
 <div id="keanggotaan-container">
     @foreach ($keanggotaanItems as $idx => $item)
         @include('orang.partials.keanggotaan-row', [
-            'index' => $idx,
+            'index' => (int) $idx,
             'item' => $item,
             'pokjaList' => $pokjaList,
             'totalRows' => count($keanggotaanItems),

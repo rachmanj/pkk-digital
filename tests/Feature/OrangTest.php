@@ -181,6 +181,80 @@ class OrangTest extends TestCase
         $response->assertDontSee('Ibu TP PKK', false);
     }
 
+    public function test_halaman_create_mengembalikan_200(): void
+    {
+        $user = $this->actingAdmin();
+        $this->seedMaster();
+
+        $response = $this->actingAs($user)->get(route('orang.create'));
+
+        $response->assertOk();
+        $response->assertSee('Tambah Anggota', false);
+        $response->assertSee('Keanggotaan #1', false);
+        $response->assertSee('name="keanggotaan[0][jenis]"', false);
+    }
+
+    public function test_halaman_edit_mengembalikan_200(): void
+    {
+        $user = $this->actingAdmin();
+        $master = $this->seedMaster();
+        $pokjaI = $master['pokja']->firstWhere('kode', 'I');
+        $orang = Orang::factory()->forKelurahan($master['kelurahan'])->create(['nama' => 'Edit Form Orang']);
+        Keanggotaan::factory()->forOrangKelurahan($orang)->create([
+            'jenis' => Keanggotaan::JENIS_TP_PKK,
+            'pokja_id' => $pokjaI->id,
+            'jabatan' => 'Anggota Pokja I',
+            'no_registrasi' => 'ED-001',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('orang.edit', $orang));
+
+        $response->assertOk();
+        $response->assertSee('Ubah Anggota', false);
+        $response->assertSee('Edit Form Orang', false);
+        $response->assertSee('Keanggotaan #1', false);
+        $response->assertSee('name="keanggotaan[0][jenis]"', false);
+    }
+
+    public function test_store_orang_dengan_keanggotaan_lengkap_menyimpan_orang_dan_pokja(): void
+    {
+        $user = $this->actingAdmin();
+        $master = $this->seedMaster();
+        $pokjaI = $master['pokja']->firstWhere('kode', 'I');
+
+        $payload = $this->validOrangPayload([
+            'nama' => 'Orang E2E Store',
+            'keanggotaan' => [
+                [
+                    'jenis' => Keanggotaan::JENIS_TP_PKK,
+                    'pokja_id' => $pokjaI->id,
+                    'jabatan' => 'Ketua Pokja I',
+                    'no_registrasi' => 'E2E-REG-001',
+                    'sk_nomor' => 'SK/001/2024',
+                    'mulai' => '2024-01-15',
+                    'is_aktif' => '1',
+                ],
+            ],
+        ]);
+
+        $response = $this->actingAs($user)->post(route('orang.store'), $payload);
+
+        $response->assertRedirect();
+        $orang = Orang::query()->where('nama', 'Orang E2E Store')->first();
+        $this->assertNotNull($orang);
+        $this->assertSame($master['kelurahan']->id, $orang->kelurahan_id);
+        $this->assertDatabaseCount('keanggotaan', 1);
+        $this->assertDatabaseHas('keanggotaan', [
+            'orang_id' => $orang->id,
+            'pokja_id' => $pokjaI->id,
+            'jenis' => Keanggotaan::JENIS_TP_PKK,
+            'jabatan' => 'Ketua Pokja I',
+            'no_registrasi' => 'E2E-REG-001',
+            'sk_nomor' => 'SK/001/2024',
+            'is_aktif' => true,
+        ]);
+    }
+
     public function test_halaman_index_dan_show_bisa_dibuka_pengguna_terautentikasi(): void
     {
         $user = $this->actingAdmin();
