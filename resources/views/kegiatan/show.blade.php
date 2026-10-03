@@ -182,6 +182,85 @@
         </div>
     </div>
 
+    @php
+        $fotoKegiatan = $kegiatan->fotoTerurut;
+        $bolehUnggahFoto = auth()->user()?->can('isi_presensi') || auth()->user()?->can('kelola_kegiatan');
+        $bolehHapusFoto = auth()->user()?->can('kelola_kegiatan');
+    @endphp
+
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span>Foto Kegiatan</span>
+            <span class="badge text-bg-secondary">{{ $fotoKegiatan->count() }} foto</span>
+        </div>
+        <div class="card-body">
+            @if ($bolehUnggahFoto)
+                <form method="post" action="{{ route('kegiatan.foto.store', $kegiatan) }}" enctype="multipart/form-data" class="mb-4">
+                    @csrf
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label" for="foto-kegiatan">Unggah foto (maks. 12 berkas, 4 MB per foto)</label>
+                            <input type="file" name="foto[]" id="foto-kegiatan" class="form-control form-control-sm"
+                                accept="image/jpeg,image/png,image/webp" multiple required>
+                            @error('foto')
+                                <div class="text-danger small">{{ $message }}</div>
+                            @enderror
+                            @error('foto.*')
+                                <div class="text-danger small">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label" for="keterangan-foto">Keterangan (opsional, untuk semua foto)</label>
+                            <input type="text" name="keterangan" id="keterangan-foto" class="form-control form-control-sm"
+                                value="{{ old('keterangan') }}" maxlength="500">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">Unggah</button>
+                        </div>
+                    </div>
+                </form>
+            @endif
+
+            @if ($fotoKegiatan->isEmpty())
+                <p class="text-muted mb-0">Belum ada foto kegiatan. Unggah dokumentasi pembinaan PKK (maks. 4 MB per foto).</p>
+            @else
+                <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3">
+                    @foreach ($fotoKegiatan as $foto)
+                        <div class="col">
+                            <div class="border rounded p-2 h-100 d-flex flex-column">
+                                <a href="{{ route('kegiatan-foto.berkas', $foto) }}" target="_blank" rel="noopener noreferrer"
+                                    class="d-block mb-2 text-center">
+                                    <img src="{{ route('kegiatan-foto.berkas', $foto) }}" alt="{{ $foto->nama_asli }}"
+                                        class="img-fluid rounded" style="max-height: 100px; object-fit: cover; width: 100%;">
+                                </a>
+                                <p class="small mb-1">
+                                    <span class="text-muted">Keterangan:</span>
+                                    {{ $foto->keterangan ?: '—' }}
+                                </p>
+                                <p class="small mb-1 text-muted">
+                                    {{ $foto->uploader?->name ?? '—' }}
+                                    · {{ $foto->created_at?->format('d/m/Y H:i') ?? '—' }}
+                                </p>
+                                <div class="mt-auto d-flex flex-wrap gap-1">
+                                    <a href="{{ route('kegiatan-foto.berkas', $foto) }}" target="_blank" rel="noopener noreferrer"
+                                        class="btn btn-outline-secondary btn-sm">Buka penuh</a>
+                                    @if ($bolehHapusFoto)
+                                        <form method="post" action="{{ route('kegiatan-foto.destroy', $foto) }}"
+                                            onsubmit="return confirm('Hapus foto ini?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Hapus</button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    </div>
+
     <div class="card mb-3">
         <div class="card-header">Notulen Rapat</div>
         <div class="card-body">

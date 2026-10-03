@@ -158,6 +158,7 @@ class KegiatanController extends Controller
             'pimpinanRapat',
             'presensi.orang',
             'notulen.pembuat',
+            'foto.uploader',
         ]);
 
         $orangList = Orang::query()

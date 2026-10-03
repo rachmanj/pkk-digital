@@ -9,6 +9,7 @@ use App\Http\Controllers\CetakController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisposisiController;
 use App\Http\Controllers\KegiatanController;
+use App\Http\Controllers\KegiatanFotoController;
 use App\Http\Controllers\OrangController;
 use App\Http\Controllers\UserController;
 use App\Support\PkkPermission;
@@ -118,6 +119,14 @@ Route::middleware('auth')->group(function () {
     Route::post('kegiatan/{kegiatan}/notulen', [KegiatanController::class, 'simpanNotulen'])
         ->middleware(PkkPermission::middleware(PkkPermission::KELOLA_KEGIATAN))
         ->name('kegiatan.notulen.store');
+    Route::post('kegiatan/{kegiatan}/foto', [KegiatanFotoController::class, 'store'])
+        ->middleware(PkkPermission::middleware(PkkPermission::ISI_PRESENSI, PkkPermission::KELOLA_KEGIATAN))
+        ->name('kegiatan.foto.store');
+    Route::delete('kegiatan-foto/{foto}', [KegiatanFotoController::class, 'destroy'])
+        ->middleware(PkkPermission::middleware(PkkPermission::KELOLA_KEGIATAN))
+        ->name('kegiatan-foto.destroy');
+    Route::get('kegiatan-foto/{foto}/berkas', [KegiatanFotoController::class, 'berkas'])
+        ->name('kegiatan-foto.berkas');
 
     Route::get('kegiatan', [KegiatanController::class, 'index'])->middleware($lihatKegiatan)->name('kegiatan.index');
     Route::get('kegiatan/create', [KegiatanController::class, 'create'])->middleware(PkkPermission::middleware(PkkPermission::KELOLA_KEGIATAN))->name('kegiatan.create');

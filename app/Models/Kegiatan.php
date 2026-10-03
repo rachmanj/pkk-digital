@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\KegiatanFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -107,6 +108,22 @@ class Kegiatan extends Model
     public function notulen(): HasOne
     {
         return $this->hasOne(Notulen::class);
+    }
+
+    public function foto(): HasMany
+    {
+        return $this->hasMany(KegiatanFoto::class);
+    }
+
+    protected function fotoTerurut(): Attribute
+    {
+        return Attribute::get(function () {
+            if ($this->relationLoaded('foto')) {
+                return $this->foto->sortBy('urut')->values();
+            }
+
+            return $this->foto()->orderBy('urut')->get();
+        });
     }
 
     /**
