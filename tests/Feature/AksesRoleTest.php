@@ -112,6 +112,19 @@ class AksesRoleTest extends TestCase
     {
         ['kelurahan' => $kelurahan, 'pokja' => $pokjaI, 'pokjaIi' => $pokjaIi] = $this->seedMaster();
 
+        $suratKelurahan = AgendaSurat::query()->create([
+            'kelurahan_id' => $kelurahan->id,
+            'jenis' => AgendaSurat::JENIS_MASUK,
+            'pokja_id' => null,
+            'no_urut_tahun' => 1,
+            'tahun' => 2026,
+            'tanggal_surat' => '2026-01-01',
+            'tanggal_terima' => '2026-01-02',
+            'no_surat' => 'KEL/TEST',
+            'dari' => 'Kelurahan',
+            'perihal' => 'Tingkat kelurahan',
+        ]);
+
         $suratI = AgendaSurat::query()->create([
             'kelurahan_id' => $kelurahan->id,
             'jenis' => AgendaSurat::JENIS_MASUK,
@@ -143,6 +156,7 @@ class AksesRoleTest extends TestCase
             'pokja_id' => $pokjaI->id,
         ]);
 
+        $this->actingAs($ketuaPokja)->get(route('agenda-surat.show', $suratKelurahan))->assertOk();
         $this->actingAs($ketuaPokja)->get(route('agenda-surat.show', $suratI))->assertOk();
         $this->actingAs($ketuaPokja)->get(route('agenda-surat.show', $suratIi))->assertForbidden();
     }

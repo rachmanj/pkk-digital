@@ -124,7 +124,7 @@ class BukuTamuController extends Controller
 
     public function show(BukuTamu $bukuTamu): View
     {
-        $this->authorizePokjaRecord($bukuTamu->pokja_id);
+        $this->authorizePokjaRecordRead($bukuTamu->pokja_id);
 
         $bukuTamu->load(['pokja', 'kelurahan']);
 

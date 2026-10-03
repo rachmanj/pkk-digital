@@ -40,10 +40,6 @@ class KegiatanController extends Controller
 
         $pokjaId = $request->input('pokja_id');
         $pokjaIdFilter = ($pokjaId !== null && $pokjaId !== '') ? (int) $pokjaId : null;
-        $ketuaPokjaId = $this->ketuaPokjaPokjaId();
-        if ($ketuaPokjaId !== null) {
-            $pokjaIdFilter = $ketuaPokjaId;
-        }
 
         $query = Kegiatan::query()
             ->with('pokja')
@@ -64,9 +60,7 @@ class KegiatanController extends Controller
             $query->where('jenis', $jenis);
         }
 
-        if ($pokjaIdFilter !== null) {
-            $query->where('pokja_id', $pokjaIdFilter);
-        }
+        $this->applyKetuaPokjaKegiatanIndexScope($query, $pokjaIdFilter);
 
         $search = $request->string('q')->trim()->toString();
         if ($search !== '') {
@@ -149,7 +143,7 @@ class KegiatanController extends Controller
 
     public function show(Kegiatan $kegiatan): View
     {
-        $this->authorizePokjaRecord($kegiatan->pokja_id);
+        $this->authorizePokjaRecordRead($kegiatan->pokja_id);
 
         $kegiatan->load([
             'kelurahan',

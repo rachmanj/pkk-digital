@@ -3,39 +3,35 @@
 namespace App\Http\Controllers\Concerns;
 
 use App\Models\User;
+use App\Support\PokjaScope;
+use Illuminate\Database\Eloquent\Builder;
 
 trait HandlesPokjaScope
 {
     protected function ketuaPokjaPokjaId(): ?int
     {
         $user = auth()->user();
-        if (! $user instanceof User || ! $user->hasRole('ketua_pokja')) {
-            return null;
-        }
 
-        return $user->pokja_id;
+        return PokjaScope::ketuaPokjaId($user instanceof User ? $user : null);
+    }
+
+    protected function authorizePokjaRecordRead(?int $pokjaId): void
+    {
+        if (! PokjaScope::ketuaMayReadRecord($this->ketuaPokjaPokjaId(), $pokjaId)) {
+            abort(403);
+        }
     }
 
     protected function authorizePokjaRecord(?int $pokjaId): void
     {
-        $expected = $this->ketuaPokjaPokjaId();
-        if ($expected === null) {
-            return;
-        }
-
-        if ($pokjaId !== $expected) {
+        if (! PokjaScope::ketuaMayWriteRecord($this->ketuaPokjaPokjaId(), $pokjaId)) {
             abort(403);
         }
     }
 
     protected function authorizePokjaBukuFilter(?int $pokjaIdFromBuku): void
     {
-        $expected = $this->ketuaPokjaPokjaId();
-        if ($expected === null) {
-            return;
-        }
-
-        if ($pokjaIdFromBuku === null || $pokjaIdFromBuku !== $expected) {
+        if (! PokjaScope::ketuaMayAccessBukuFilter($this->ketuaPokjaPokjaId(), $pokjaIdFromBuku)) {
             abort(403);
         }
     }
@@ -67,5 +63,13 @@ trait HandlesPokjaScope
         }
 
         return $expected;
+    }
+
+    /**
+     * @param  Builder<\Illuminate\Database\Eloquent\Model>  $query
+     */
+    protected function applyKetuaPokjaKegiatanIndexScope(Builder $query, ?int $requestedPokjaId): void
+    {
+        PokjaScope::applyKetuaPokjaKegiatanIndexScope($query, $this->ketuaPokjaPokjaId(), $requestedPokjaId);
     }
 }

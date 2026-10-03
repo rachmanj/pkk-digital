@@ -177,7 +177,7 @@ class AgendaSuratController extends Controller
 
     public function show(AgendaSurat $agendaSurat): View
     {
-        $this->authorizePokjaRecord($agendaSurat->pokja_id);
+        $this->authorizePokjaRecordRead($agendaSurat->pokja_id);
 
         $agendaSurat->load(['disposisi.pokja', 'disposisi.user', 'disposisi.olehUser', 'pokja', 'kelurahan']);
         $pokjaList = Pokja::query()
@@ -253,7 +253,7 @@ class AgendaSuratController extends Controller
 
     public function berkas(AgendaSurat $agendaSurat): StreamedResponse
     {
-        $this->authorizePokjaRecord($agendaSurat->pokja_id);
+        $this->authorizePokjaRecordRead($agendaSurat->pokja_id);
 
         if ($agendaSurat->file_path === null || ! Storage::disk('local')->exists($agendaSurat->file_path)) {
             abort(404);

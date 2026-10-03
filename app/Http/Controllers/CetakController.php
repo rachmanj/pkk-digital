@@ -127,11 +127,7 @@ class CetakController extends Controller
             $pokjaId = (int) substr($filter['buku'], 6);
         }
 
-        if ($pokjaId === null) {
-            abort(403);
-        }
-
-        $this->authorizePokjaRecord($pokjaId);
+        $this->authorizePokjaBukuFilter($pokjaId);
     }
 
     /**

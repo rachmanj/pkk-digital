@@ -110,7 +110,7 @@ class KegiatanFotoController extends Controller
             abort(404);
         }
 
-        $this->authorizePokjaRecord($kegiatan->pokja_id);
+        $this->authorizePokjaRecordRead($kegiatan->pokja_id);
 
         if (! Storage::disk('local')->exists($foto->file_path)) {
             abort(404);
