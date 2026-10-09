@@ -44,15 +44,15 @@
             value="{{ old('jam_selesai', ($kegiatan?->jam_selesai) ? substr((string) $kegiatan->jam_selesai, 0, 5) : '') }}">
     </div>
     <div class="col-md-4">
-        <label class="form-label" for="pokja_id">Pokja (opsional)</label>
-        <select name="pokja_id" id="pokja_id" class="form-select">
-            <option value="">—</option>
-            @foreach ($pokjaList as $pokja)
-                <option value="{{ $pokja->id }}" @selected((string) old('pokja_id', $kegiatan->pokja_id ?? '') === (string) $pokja->id)>
-                    Pokja {{ $pokja->kode }}
-                </option>
-            @endforeach
-        </select>
+        <label class="form-label" for="unit">Unit</label>
+        @include('kegiatan.partials.unit-select', [
+            'pokjaList' => $pokjaList,
+            'selectedUnit' => old('unit', $kegiatan instanceof \App\Models\Kegiatan
+                ? \App\Support\KegiatanUnit::nilaiFormDariKegiatan($kegiatan)
+                : ''),
+            'inputId' => 'unit',
+            'inputName' => 'unit',
+        ])
     </div>
     <div class="col-md-4">
         <label class="form-label" for="rt_id">RT (opsional)</label>

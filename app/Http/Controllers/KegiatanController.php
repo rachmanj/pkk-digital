@@ -14,6 +14,7 @@ use App\Models\Pokja;
 use App\Models\Presensi;
 use App\Models\ProgramKerja;
 use App\Models\Rt;
+use App\Support\KegiatanUnit;
 use Illuminate\Support\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -42,8 +43,8 @@ class KegiatanController extends Controller
             $jenis = '';
         }
 
-        $pokjaId = $request->input('pokja_id');
-        $pokjaIdFilter = ($pokjaId !== null && $pokjaId !== '') ? (int) $pokjaId : null;
+        $unitFilter = KegiatanUnit::resolveUnitFilter($request);
+        $pokjaIdFilter = KegiatanUnit::pokjaIdUntukScope($unitFilter);
 
         $query = Kegiatan::query()
             ->with('pokja')
@@ -65,6 +66,7 @@ class KegiatanController extends Controller
         }
 
         $this->applyKetuaPokjaKegiatanIndexScope($query, $pokjaIdFilter);
+        KegiatanUnit::terapkanFilterUnit($query, $unitFilter);
 
         $search = $request->string('q')->trim()->toString();
         if ($search !== '') {
@@ -86,6 +88,7 @@ class KegiatanController extends Controller
                 'bulan' => $bulanInt,
                 'jenis' => $jenis,
                 'pokja_id' => $pokjaIdFilter,
+                'unit' => $unitFilter ?? '',
                 'q' => $search,
             ],
         ]);
@@ -126,10 +129,12 @@ class KegiatanController extends Controller
         $pokjaId = isset($validated['pokja_id']) ? (int) $validated['pokja_id'] : null;
         $pokjaId = $this->pokjaIdForKetuaPokjaWrite($pokjaId);
         $this->authorizePokjaRecord($pokjaId);
+        $pelaksana = isset($validated['pelaksana']) ? (string) $validated['pelaksana'] : null;
 
         $kegiatan = Kegiatan::query()->create([
             'kelurahan_id' => $kelurahan->id,
             'pokja_id' => $pokjaId,
+            'pelaksana' => $pelaksana,
             'rt_id' => isset($validated['rt_id']) ? (int) $validated['rt_id'] : null,
             'nama' => $validated['nama'],
             'jenis' => $validated['jenis'],
@@ -217,9 +222,11 @@ class KegiatanController extends Controller
         $pokjaId = isset($validated['pokja_id']) ? (int) $validated['pokja_id'] : null;
         $pokjaId = $this->pokjaIdForKetuaPokjaWrite($pokjaId);
         $this->authorizePokjaRecord($pokjaId);
+        $pelaksana = isset($validated['pelaksana']) ? (string) $validated['pelaksana'] : null;
 
         $kegiatan->update([
             'pokja_id' => $pokjaId,
+            'pelaksana' => $pelaksana,
             'rt_id' => isset($validated['rt_id']) ? (int) $validated['rt_id'] : null,
             'nama' => $validated['nama'],
             'jenis' => $validated['jenis'],

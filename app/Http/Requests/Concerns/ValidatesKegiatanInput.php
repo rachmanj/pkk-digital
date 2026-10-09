@@ -3,11 +3,11 @@
 namespace App\Http\Requests\Concerns;
 
 use App\Models\Kegiatan;
-use App\Models\Kelurahan;
 use App\Models\Orang;
 use App\Models\Pokja;
 use App\Models\ProgramKerja;
 use App\Models\Rt;
+use App\Support\KegiatanUnit;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -21,7 +21,9 @@ trait ValidatesKegiatanInput
         return [
             'nama' => ['required', 'string', 'max:255'],
             'jenis' => ['required', Rule::in(Kegiatan::daftarJenis())],
+            'unit' => ['nullable', 'string', 'max:50'],
             'pokja_id' => ['nullable', 'integer', Rule::exists(Pokja::class, 'id')],
+            'pelaksana' => ['nullable', 'string', Rule::in(Kegiatan::daftarPelaksana())],
             'rt_id' => ['nullable', 'integer', Rule::exists(Rt::class, 'id')],
             'tanggal' => ['required', 'date'],
             'jam_mulai' => ['nullable', 'date_format:H:i'],
@@ -49,10 +51,24 @@ trait ValidatesKegiatanInput
             'acara.required' => 'Acara wajib diisi.',
             'pimpinan_rapat_id.exists' => 'Pimpinan rapat yang dipilih tidak valid.',
             'pokja_id.exists' => 'Pokja yang dipilih tidak valid.',
+            'pelaksana.in' => 'Unit pelaksana tidak valid.',
             'rt_id.exists' => 'RT yang dipilih tidak valid.',
             'jam_mulai.date_format' => 'Jam mulai harus berformat jam yang valid.',
             'jam_selesai.date_format' => 'Jam selesai harus berformat jam yang valid.',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('unit')) {
+            return;
+        }
+
+        $parsed = KegiatanUnit::parseNilaiUnit($this->input('unit'));
+        $this->merge([
+            'pokja_id' => $parsed['pokja_id'],
+            'pelaksana' => $parsed['pelaksana'],
+        ]);
     }
 
     public function withValidator(Validator $validator): void
@@ -60,6 +76,12 @@ trait ValidatesKegiatanInput
         $validator->after(function (Validator $validator): void {
             if ($validator->errors()->isNotEmpty()) {
                 return;
+            }
+
+            $kelurahan = app(\App\Support\ActiveKelurahan::class)->resolve($this->user());
+            $unit = $this->input('unit');
+            if ($unit !== null && $unit !== '' && ! KegiatanUnit::unitValid((string) $unit, $kelurahan)) {
+                $validator->errors()->add('unit', 'Unit yang dipilih tidak valid.');
             }
 
             $jamMulai = $this->input('jam_mulai');

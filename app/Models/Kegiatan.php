@@ -32,6 +32,32 @@ class Kegiatan extends Model
 
     public const JENIS_LAIN_LAIN = 'lain_lain';
 
+    public const PELAKSANA_KETUA = 'ketua';
+
+    public const PELAKSANA_SEKRETARIS = 'sekretaris';
+
+    /**
+     * @return array<string, string>
+     */
+    public static function labelPelaksana(): array
+    {
+        return [
+            self::PELAKSANA_KETUA => 'Ketua',
+            self::PELAKSANA_SEKRETARIS => 'Sekretaris',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function daftarPelaksana(): array
+    {
+        return [
+            self::PELAKSANA_KETUA,
+            self::PELAKSANA_SEKRETARIS,
+        ];
+    }
+
     /**
      * @return list<string>
      */
@@ -53,6 +79,7 @@ class Kegiatan extends Model
     protected $fillable = [
         'kelurahan_id',
         'pokja_id',
+        'pelaksana',
         'rt_id',
         'nama',
         'jenis',
@@ -71,6 +98,17 @@ class Kegiatan extends Model
         return [
             'tanggal' => 'date',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Kegiatan $kegiatan): void {
+            if ($kegiatan->pokja_id !== null) {
+                $kegiatan->pelaksana = null;
+            } elseif ($kegiatan->pelaksana !== null && $kegiatan->pelaksana !== '') {
+                $kegiatan->pokja_id = null;
+            }
+        });
     }
 
     public function getActivitylogOptions(): LogOptions
@@ -153,6 +191,27 @@ class Kegiatan extends Model
     public function hadirCount(): int
     {
         return $this->presensi()->where('hadir', true)->count();
+    }
+
+    public function labelUnit(): string
+    {
+        if ($this->pelaksana === self::PELAKSANA_KETUA) {
+            return 'Ketua';
+        }
+
+        if ($this->pelaksana === self::PELAKSANA_SEKRETARIS) {
+            return 'Sekretaris';
+        }
+
+        if ($this->pokja_id !== null) {
+            $kode = $this->relationLoaded('pokja')
+                ? ($this->pokja?->kode ?? '?')
+                : ($this->pokja()->value('kode') ?? '?');
+
+            return 'Pokja '.$kode;
+        }
+
+        return 'Kelurahan';
     }
 
     public function labelJenis(): string

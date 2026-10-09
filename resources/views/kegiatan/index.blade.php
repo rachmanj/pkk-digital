@@ -42,15 +42,15 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label" for="pokja_id">Pokja</label>
-                    <select name="pokja_id" id="pokja_id" class="form-select form-select-sm">
-                        <option value="">Semua</option>
-                        @foreach ($pokjaList as $pokja)
-                            <option value="{{ $pokja->id }}" @selected($filters['pokja_id'] === $pokja->id)>
-                                Pokja {{ $pokja->kode }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <label class="form-label" for="unit">Unit</label>
+                    @include('kegiatan.partials.unit-select', [
+                        'pokjaList' => $pokjaList,
+                        'selectedUnit' => $filters['unit'] ?? '',
+                        'inputId' => 'unit',
+                        'inputName' => 'unit',
+                        'cssClass' => 'form-select form-select-sm',
+                        'semuaLabel' => 'Semua',
+                    ])
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="q">Cari nama / tempat</label>
@@ -80,7 +80,7 @@
                         <th>Nama</th>
                         <th>Jenis</th>
                         <th>Tempat</th>
-                        <th>Pokja</th>
+                        <th>Unit</th>
                         <th class="text-center">Peserta</th>
                         <th></th>
                     </tr>
@@ -92,13 +92,7 @@
                             <td>{{ $item->nama }}</td>
                             <td>{{ $item->labelJenis() }}</td>
                             <td>{{ $item->tempat ?: '—' }}</td>
-                            <td>
-                                @if ($item->pokja)
-                                    Pokja {{ $item->pokja->kode }}
-                                @else
-                                    —
-                                @endif
-                            </td>
+                            <td>{{ $item->labelUnit() }}</td>
                             <td class="text-center">
                                 <span class="badge text-bg-secondary">{{ $item->presensi_count }}</span>
                             </td>

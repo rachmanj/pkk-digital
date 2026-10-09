@@ -11,6 +11,7 @@ use App\Models\Presensi;
 use App\Models\User;
 use Database\Seeders\MasterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
 class KegiatanTest extends TestCase
@@ -285,5 +286,227 @@ class KegiatanTest extends TestCase
         Presensi::factory()->untukKegiatan($kegiatan, 2)->tidakHadir()->create();
 
         $this->assertSame(1, $kegiatan->hadirCount());
+    }
+
+    public function test_store_unit_ketua_mengisi_pelaksana_dan_mengosongkan_pokja(): void
+    {
+        $user = $this->actingAdmin();
+        ['kelurahan' => $kelurahan, 'pokja' => $pokjaList] = $this->seedMaster();
+        $pokjaI = $pokjaList->first();
+
+        $this->actingAs($user)->post(route('kegiatan.store'), $this->validKegiatanPayload([
+            'nama' => 'Rapat Ketua',
+            'unit' => 'ketua',
+            'pokja_id' => $pokjaI->id,
+        ]))->assertRedirect();
+
+        $this->assertDatabaseHas('kegiatan', [
+            'nama' => 'Rapat Ketua',
+            'pelaksana' => Kegiatan::PELAKSANA_KETUA,
+            'pokja_id' => null,
+        ]);
+    }
+
+    public function test_store_unit_sekretaris_mengisi_pelaksana_dan_mengosongkan_pokja(): void
+    {
+        $user = $this->actingAdmin();
+        $this->seedMaster();
+
+        $this->actingAs($user)->post(route('kegiatan.store'), $this->validKegiatanPayload([
+            'nama' => 'Rapat Sekretaris',
+            'unit' => 'sekretaris',
+        ]))->assertRedirect();
+
+        $this->assertDatabaseHas('kegiatan', [
+            'nama' => 'Rapat Sekretaris',
+            'pelaksana' => Kegiatan::PELAKSANA_SEKRETARIS,
+            'pokja_id' => null,
+        ]);
+    }
+
+    public function test_store_unit_pokja_mengisi_pokja_id_dan_mengosongkan_pelaksana(): void
+    {
+        $user = $this->actingAdmin();
+        ['pokja' => $pokjaList] = $this->seedMaster();
+        $pokja = $pokjaList->first();
+
+        $this->actingAs($user)->post(route('kegiatan.store'), $this->validKegiatanPayload([
+            'nama' => 'Kegiatan Pokja',
+            'unit' => 'pokja-'.$pokja->id,
+        ]))->assertRedirect();
+
+        $this->assertDatabaseHas('kegiatan', [
+            'nama' => 'Kegiatan Pokja',
+            'pokja_id' => $pokja->id,
+            'pelaksana' => null,
+        ]);
+    }
+
+    public function test_store_unit_umum_kelurahan_tanpa_pokja_dan_pelaksana(): void
+    {
+        $user = $this->actingAdmin();
+        $this->seedMaster();
+
+        $this->actingAs($user)->post(route('kegiatan.store'), $this->validKegiatanPayload([
+            'nama' => 'Kegiatan Umum Kelurahan',
+            'unit' => '',
+        ]))->assertRedirect();
+
+        $this->assertDatabaseHas('kegiatan', [
+            'nama' => 'Kegiatan Umum Kelurahan',
+            'pokja_id' => null,
+            'pelaksana' => null,
+        ]);
+    }
+
+    public function test_index_filter_unit_ketua_hanya_menampilkan_kegiatan_ketua(): void
+    {
+        $user = $this->actingAdmin();
+        ['kelurahan' => $kelurahan, 'pokja' => $pokjaList] = $this->seedMaster();
+        $pokja = $pokjaList->first();
+
+        $this->buatKegiatan($kelurahan, ['nama' => 'Hanya Ketua', 'pelaksana' => Kegiatan::PELAKSANA_KETUA, 'tanggal' => '2026-06-10']);
+        $this->buatKegiatan($kelurahan, ['nama' => 'Bukan Ketua', 'pelaksana' => Kegiatan::PELAKSANA_SEKRETARIS, 'tanggal' => '2026-06-11']);
+        $this->buatKegiatan($kelurahan, ['nama' => 'Pokja Saja', 'pokja_id' => $pokja->id, 'tanggal' => '2026-06-12']);
+
+        $response = $this->actingAs($user)->get(route('kegiatan.index', [
+            'tahun' => 2026,
+            'unit' => 'ketua',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Hanya Ketua', false);
+        $response->assertDontSee('Bukan Ketua', false);
+        $response->assertDontSee('Pokja Saja', false);
+    }
+
+    public function test_index_filter_unit_sekretaris_hanya_menampilkan_kegiatan_sekretaris(): void
+    {
+        $user = $this->actingAdmin();
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+
+        $this->buatKegiatan($kelurahan, ['nama' => 'Hanya Sekretaris', 'pelaksana' => Kegiatan::PELAKSANA_SEKRETARIS, 'tanggal' => '2026-06-10']);
+        $this->buatKegiatan($kelurahan, ['nama' => 'Bukan Sekretaris', 'pelaksana' => Kegiatan::PELAKSANA_KETUA, 'tanggal' => '2026-06-11']);
+
+        $response = $this->actingAs($user)->get(route('kegiatan.index', [
+            'tahun' => 2026,
+            'unit' => 'sekretaris',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Hanya Sekretaris', false);
+        $response->assertDontSee('Bukan Sekretaris', false);
+    }
+
+    public function test_index_filter_unit_pokja_hanya_menampilkan_pokja_tersebut(): void
+    {
+        $user = $this->actingAdmin();
+        ['kelurahan' => $kelurahan, 'pokja' => $pokjaList] = $this->seedMaster();
+        $pokjaI = $pokjaList->first();
+        $pokjaIi = $pokjaList->skip(1)->first();
+
+        $this->buatKegiatan($kelurahan, ['nama' => 'Kegiatan Pokja I', 'pokja_id' => $pokjaI->id, 'tanggal' => '2026-06-10']);
+        $this->buatKegiatan($kelurahan, ['nama' => 'Kegiatan Pokja II', 'pokja_id' => $pokjaIi->id, 'tanggal' => '2026-06-11']);
+
+        $response = $this->actingAs($user)->get(route('kegiatan.index', [
+            'tahun' => 2026,
+            'unit' => 'pokja-'.$pokjaI->id,
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Kegiatan Pokja I', false);
+        $response->assertDontSee('Kegiatan Pokja II', false);
+    }
+
+    public function test_index_filter_lama_pokja_id_masih_bekerja(): void
+    {
+        $user = $this->actingAdmin();
+        ['kelurahan' => $kelurahan, 'pokja' => $pokjaList] = $this->seedMaster();
+        $pokjaI = $pokjaList->first();
+        $pokjaIi = $pokjaList->skip(1)->first();
+
+        $this->buatKegiatan($kelurahan, ['nama' => 'Legacy Filter I', 'pokja_id' => $pokjaI->id, 'tanggal' => '2026-06-10']);
+        $this->buatKegiatan($kelurahan, ['nama' => 'Legacy Filter II', 'pokja_id' => $pokjaIi->id, 'tanggal' => '2026-06-11']);
+
+        $response = $this->actingAs($user)->get(route('kegiatan.index', [
+            'tahun' => 2026,
+            'pokja_id' => $pokjaI->id,
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Legacy Filter I', false);
+        $response->assertDontSee('Legacy Filter II', false);
+    }
+
+    public function test_cetak_buku_kegiatan_unit_ketua_judul_dan_baris_terfilter(): void
+    {
+        $user = $this->actingAdmin();
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+
+        $this->buatKegiatan($kelurahan, [
+            'nama' => 'Kegiatan Cetak Ketua',
+            'pelaksana' => Kegiatan::PELAKSANA_KETUA,
+            'tanggal' => '2026-06-15',
+        ]);
+        $this->buatKegiatan($kelurahan, [
+            'nama' => 'Kegiatan Cetak Lain',
+            'pelaksana' => Kegiatan::PELAKSANA_SEKRETARIS,
+            'tanggal' => '2026-06-16',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('cetak.show', [
+            'buku' => 'buku_kegiatan',
+            'tahun' => 2026,
+            'unit' => 'ketua',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Buku Kegiatan Ketua', false);
+        $response->assertSee('Kegiatan Cetak Ketua', false);
+        $response->assertDontSee('Kegiatan Cetak Lain', false);
+    }
+
+    public function test_export_excel_buku_kegiatan_mengikuti_filter_unit(): void
+    {
+        $user = $this->actingAdmin();
+        ['kelurahan' => $kelurahan] = $this->seedMaster();
+
+        $this->buatKegiatan($kelurahan, [
+            'nama' => 'Excel Ketua Saja',
+            'pelaksana' => Kegiatan::PELAKSANA_KETUA,
+            'tanggal' => '2026-07-01',
+        ]);
+        $this->buatKegiatan($kelurahan, [
+            'nama' => 'Excel Bukan Ketua',
+            'pelaksana' => Kegiatan::PELAKSANA_SEKRETARIS,
+            'tanggal' => '2026-07-02',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('export.buku', [
+            'buku' => 'buku_kegiatan',
+            'tahun' => 2026,
+            'unit' => 'ketua',
+        ]));
+
+        $response->assertOk();
+
+        $file = $response->baseResponse->getFile();
+        $this->assertNotNull($file);
+        $sheet = IOFactory::load($file->getPathname())->getActiveSheet();
+        $foundKetua = false;
+        $foundLain = false;
+        foreach ($sheet->getRowIterator() as $row) {
+            foreach ($row->getCellIterator() as $cell) {
+                $val = (string) $cell->getValue();
+                if (str_contains($val, 'Excel Ketua Saja')) {
+                    $foundKetua = true;
+                }
+                if (str_contains($val, 'Excel Bukan Ketua')) {
+                    $foundLain = true;
+                }
+            }
+        }
+        $this->assertTrue($foundKetua, 'Baris kegiatan Ketua harus ada di export Excel.');
+        $this->assertFalse($foundLain, 'Kegiatan di luar filter unit tidak boleh ada di export Excel.');
     }
 }

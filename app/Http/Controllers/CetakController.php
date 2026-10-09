@@ -292,7 +292,7 @@ class CetakController extends Controller
      */
     private function filterDariRequest(Request $request): array
     {
-        return $request->only(['tahun', 'bulan', 'dari', 'sampai', 'pokja_id', 'kegiatan', 'buku', 'tutup_buku', 'rt']);
+        return $request->only(['tahun', 'bulan', 'dari', 'sampai', 'pokja_id', 'unit', 'kegiatan', 'buku', 'tutup_buku', 'rt']);
     }
 
     private function namaBerkas(string $buku, int|string $tahun, string $ext): string

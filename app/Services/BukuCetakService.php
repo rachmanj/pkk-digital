@@ -13,11 +13,13 @@ use App\Models\Kelurahan;
 use App\Models\Notulen;
 use App\Models\Orang;
 use App\Models\Presensi;
+use App\Models\Pokja;
 use App\Models\ProgramKerja;
 use App\Models\StrukturPengurus;
 use App\Support\ActiveKelurahan;
 use App\Support\FormatTanggalIndonesia;
 use App\Support\FormatUang;
+use App\Support\KegiatanUnit;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -94,6 +96,15 @@ class BukuCetakService
             $payload['total_penerimaan'] = $this->totalPenerimaanKasTabungan($filter, $kelurahan);
         }
 
+        if ($kodeBuku === 'buku_kegiatan') {
+            $unit = KegiatanUnit::unitDariFilter($filter);
+            $pokja = null;
+            if ($unit !== null && str_starts_with($unit, 'pokja-')) {
+                $pokja = Pokja::query()->find((int) substr($unit, 6));
+            }
+            $payload['judul'] = KegiatanUnit::judulBukuKegiatan($unit, $pokja);
+        }
+
         return $payload;
     }
 
@@ -108,14 +119,27 @@ class BukuCetakService
             $tahun = (int) now()->year;
         }
 
+        $unit = isset($filter['unit']) && $filter['unit'] !== ''
+            ? (string) $filter['unit']
+            : null;
+
         $pokjaId = isset($filter['pokja_id']) && $filter['pokja_id'] !== ''
             ? (int) $filter['pokja_id']
             : null;
 
         $buku = (string) ($filter['buku'] ?? '');
-        if ($pokjaId === null && str_starts_with($buku, 'pokja-')) {
-            $pokjaId = (int) substr($buku, 6);
+        if ($unit === null && $pokjaId === null && str_starts_with($buku, 'pokja-')) {
+            $unit = $buku;
         }
+        if ($unit === null && $pokjaId !== null) {
+            $unit = 'pokja-'.$pokjaId;
+        }
+
+        $parsed = KegiatanUnit::parseNilaiUnit($unit);
+        if ($parsed['pokja_id'] !== null) {
+            $pokjaId = $parsed['pokja_id'];
+        }
+        $pelaksana = $parsed['pelaksana'];
 
         $kegiatanId = isset($filter['kegiatan']) && $filter['kegiatan'] !== ''
             ? (int) $filter['kegiatan']
@@ -142,6 +166,8 @@ class BukuCetakService
             'dari' => $this->parseTanggal($filter['dari'] ?? null),
             'sampai' => $this->parseTanggal($filter['sampai'] ?? null),
             'pokja_id' => $pokjaId,
+            'pelaksana' => $pelaksana,
+            'unit' => $unit,
             'kegiatan' => $kegiatanId,
             'buku' => $buku,
             'tutup_buku' => $tutupBukuId,
@@ -311,7 +337,9 @@ class BukuCetakService
             $query->where('kelurahan_id', $kelurahan->id);
         }
 
-        if ($filter['pokja_id']) {
+        if ($filter['pelaksana'] ?? null) {
+            $query->where('pelaksana', $filter['pelaksana']);
+        } elseif ($filter['pokja_id'] ?? null) {
             $query->where('pokja_id', $filter['pokja_id']);
         }
 

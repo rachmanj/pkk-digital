@@ -1,6 +1,6 @@
 @php
     $query = array_merge(
-        request()->only(['tahun', 'buku', 'pokja_id', 'kegiatan', 'dari', 'sampai', 'bulan', 'jenis', 'q', 'status_tindak', 'aktif']),
+        request()->only(['tahun', 'buku', 'pokja_id', 'unit', 'kegiatan', 'dari', 'sampai', 'bulan', 'jenis', 'q', 'status_tindak', 'aktif']),
         $queryTambahan ?? [],
     );
 @endphp
